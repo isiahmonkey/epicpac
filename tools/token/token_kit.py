@@ -54,7 +54,7 @@ CARDS_DARK=' "$alphatest" "1"\n "$alphatestreference" "0.4"\n "$allowalphatocove
 EYES=' "$selfillum" "1"\n "$selfillumtint" "[2.2 2.2 2.2]"\n "$phong" "1"\n "$phongexponent" "60"\n "$phongboost" "1"\n'
 HAIR=' "$bumpmap" "{D}/{M}_n"\n "$alphatest" "1"\n "$alphatestreference" "0.4"\n "$allowalphatocoverage" "1"\n "$nocull" "1"\n'
 PLATE=' "$bumpmap" "{D}/{M}_n"\n "$normalmapalphaenvmapmask" "1"\n "$envmap" "environment maps/metal_generic_002"\n "$envmaptint" "[1.1 1.1 1.15]"\n "$envmapcontrast" "1"\n "$phong" "1"\n "$phongexponent" "60"\n "$phongboost" "5"\n "$phongfresnelranges" "[0.5 0.8 1]"\n "$alphatest" "1"\n "$alphatestreference" "0.5"\n'.replace('{D}',MATDIR).replace('{M}','token_{NM}')
-VMT_OVERRIDE={'cyberware':BLACKMETAL,'ga_cyber':BLACKMETAL,'ga_fingers':BLACKMETAL,'ga_end':BLACKMETAL,'earcyber':BLACKMETAL,'piercing':BLACKMETAL,
+VMT_OVERRIDE={'eyeshadow':' "$translucent" "1"\n "$nocull" "1"\n','cyberware':BLACKMETAL,'ga_cyber':BLACKMETAL,'ga_fingers':BLACKMETAL,'ga_end':BLACKMETAL,'earcyber':BLACKMETAL,'piercing':BLACKMETAL,
  'facecw_face':BLACKMETAL_N,'facecw_nose':BLACKMETAL_N,'eyes':EYES,
  'hair':HAIR,'hatfur':HAIR,'brows':' "$bumpmap" "{D}/{M}_n"\n'+CARDS_DARK.replace('"0.12"','"0.05"'),'brows_s7':CARDS_DARK,'brows_s14':CARDS_DARK,'lashes':CARDS_DARK,
  'haircap':HAIR.replace('"0.4"','"0.12"'),'bolero_ml':LEATHER,'bolerocuff_ml':LEATHER,'chain_silver':SILVER,'earring':SILVER,'nd_acc':SILVER,'vchain':SILVER,'vcross':SILVER}
@@ -138,6 +138,41 @@ NORMALS={  # extra normal maps where they carry the look
  'arms':'/home/claude/work/tex/base/a0_000_ma_base__hq_nd01.png',
  'facecw_face':'/home/claude/work/tex/base/hx_cyberware_13_m02.png','facecw_nose':'/home/claude/work/tex/base/hx_cyberware_13_d02.png'}
 CAP=None
+LOCK_FINGERS=True   # citizen player models don't hand their finger bones to merged models (male_05 check): fingers ride the hand bone, pre-curled
+FCURL=None
+def _finger_curl_mats(deg=32):
+    """world-space transforms (bind -> relaxed-curl pose) for every finger bone"""
+    def axrot(a,ang):
+        a=a/np.linalg.norm(a); K=np.array([[0,-a[2],a[1]],[a[2],0,-a[0]],[-a[1],a[0],0]]); return np.eye(3)+np.sin(ang)*K+(1-np.cos(ang))*K@K
+    names=RT.vn; par=RT.vp; NW=[np.array(m) for m in RT.NW]; P=[m.copy() for m in NW]; idx={n:i for i,n in enumerate(names)}
+    kids=lambda i:[c for c in range(len(names)) if par[c]==i]
+    def sub(i):
+        out=[i]; [out.extend(sub(c)) for c in kids(i)]; return out
+    for sd in 'LR':
+        f1=NW[idx['ValveBiped.Bip01_%s_Finger1'%sd]][:3,3]; f3=NW[idx['ValveBiped.Bip01_%s_Finger3'%sd]][:3,3]
+        for f in range(1,5):
+            for seg in ('%d'%f,'%d1'%f,'%d2'%f):
+                i=idx['ValveBiped.Bip01_%s_Finger%s'%(sd,seg)]; pv=P[i][:3,3].copy(); ch=kids(i)
+                fdir=(P[ch[0]][:3,3]-pv) if ch else P[i][:3,:3][:,0]
+                R=axrot(np.cross(f3-f1,fdir),np.radians(deg*(0.8 if seg==str(f) else 1.0)))
+                for j in sub(i): P[j][:3,:3]=R@P[j][:3,:3]; P[j][:3,3]=R@(P[j][:3,3]-pv)+pv
+    return {i:P[i]@np.linalg.inv(NW[i]) for i,n in enumerate(names) if 'Finger' in n}
+def lock_fingers(vp,vn,lk):
+    global FCURL
+    if FCURL is None: FCURL=_finger_curl_mats()
+    hand={sd:RT.vn.index('ValveBiped.Bip01_%s_Hand'%sd) for sd in 'LR'}
+    vp=vp.copy(); vn=vn.copy(); out=[]
+    for k,links in enumerate(lk):
+        fw=[(b,w) for b,w in links if b in FCURL]
+        if not fw: out.append(links); continue
+        p4=np.append(vp[k],1.0); acc=np.zeros(3); accn=np.zeros(3); tw=0
+        for b,w in links:
+            M=FCURL.get(b,np.eye(4)); acc+=w*(M@p4)[:3]; accn+=w*(M[:3,:3]@vn[k]); tw+=w
+        vp[k]=acc/tw; vn[k]=accn/max(np.linalg.norm(accn),1e-9)
+        h=hand['L' if vp[k][0]>0 else 'R']; nl={}
+        for b,w in links: bb=h if b in FCURL else b; nl[bb]=nl.get(bb,0)+w
+        out.append(list(nl.items()))
+    return vp,vn,out
 def _hand_segments(side):
     nw=lambda n: RT.NW[RT.vn.index('ValveBiped.Bip01_%s_%s'%(side,n))][:3,3]
     segs=[]
@@ -294,7 +329,9 @@ def main():
                 used=np.unique(F); remap=-np.ones(len(pos),int); remap[used]=np.arange(len(used))
                 if nm in HEADLIKE or nm=='earring': vp,vn_,lk=head_skin(pos[used],nrm[used])   # earring: one rigid move with the head (no per-vertex bone mixing)
                 else: vp,vn_,lk=RT.retarget(pos[used],nrm[used],np.asarray(p['ji'])[used],np.asarray(p['jw'])[used],p['bones'],p['bonepos'])
-                if nm in ('arms',) or nm.startswith('ga_'): lk=refit_hand(vp,lk)
+                if nm in ('arms',) or nm.startswith('ga_'):
+                    lk=refit_hand(vp,lk)
+                    if LOCK_FINGERS: vp,vn_,lk=lock_fingers(vp,vn_,lk)
                 if nm in RIGID: lk=[[(RT.vn.index(RIGID[nm]),1.0)]]*len(vp)      # jewelry moves as one piece
                 if nm in RIGID_EXTRA and RIGID_EXTRA[nm] in VN: lk=[[(VN.index(RIGID_EXTRA[nm]),1.0)]]*len(vp)   # dangles from its jigglebone
                 if nm in HEADLIKE and cls(nm)!='cards':   # some CP head-family meshes carry inward normals: make them face out of the skull
