@@ -161,7 +161,8 @@ def metal_of(nm,size):
     if mr is None: return None
     return np.asarray(mr.convert('RGB').resize(size,Image.LANCZOS)).astype(np.float32)[...,2]/255
 EYE_LID_SIGN=1
-LOCK_FINGERS=False   # citizen player models don't hand their finger bones to merged models (male_05 check): fingers ride the hand bone, pre-curled
+LOCK_FINGERS=False
+REFIT_HAND=False   # keep the CP artist finger weights (retarget already lands each CP finger joint on the Kleiner knuckle)   # citizen player models don't hand their finger bones to merged models (male_05 check): fingers ride the hand bone, pre-curled
 FCURL=None
 def _finger_curl_mats(deg=0):
     """world-space transforms (bind -> relaxed-curl pose) for every finger bone"""
@@ -366,7 +367,7 @@ def main():
                 if nm in HEADLIKE or nm=='earring': vp,vn_,lk=head_skin(pos[used],nrm[used])   # earring: one rigid move with the head (no per-vertex bone mixing)
                 else: vp,vn_,lk=RT.retarget(pos[used],nrm[used],np.asarray(p['ji'])[used],np.asarray(p['jw'])[used],p['bones'],p['bonepos'])
                 if nm in ('arms',) or nm.startswith('ga_'):
-                    lk=refit_hand(vp,lk)
+                    if REFIT_HAND: lk=refit_hand(vp,lk)
                     if LOCK_FINGERS: vp,vn_,lk=lock_fingers(vp,vn_,lk)
                 if LOCK_FINGERS and nm not in ('arms',) and not nm.startswith('ga_'):   # any other piece touching a finger (cuffs, sleeves) rides the hand too
                     fids={i for i,n in enumerate(RT.vn) if 'Finger' in n}; hL=RT.vn.index('ValveBiped.Bip01_L_Hand'); hR=RT.vn.index('ValveBiped.Bip01_R_Hand')
