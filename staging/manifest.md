@@ -69,3 +69,8 @@ Source preset: `takemura hades edition.preset` (40 options, resolved against `ma
   - B: long fur coat + Tron
   - C (current): tank + jeans + silver wallet chain + platform boots
 - **Wallet chain on the baggy jeans:** about 3% of its vertices sink in, up to 7.7 mm, all at the waistband (z 0.92 to 1.06).
+- **Feet:** PinkyDude Vinyl Platform Boots, Black (`s1_001_pma_vinylplatformboots`): spiked toe, chunky lug sole. They REPLACE the yusei platform ankle boots, which are removed from the build.
+- **Props, chosen:**
+  - Bottle: B4 `base\environment\decoration\food\drinks\drink_bottle\drink_bottle_m_whiskey.mesh` (capped).
+  - Glass: G1 `base\environment\decoration\dining_accessories\tableware\glass\glass_f_whiskey.mesh`, with its fillable whiskey layer.
+  - Both get a hand-attach rig during the PAC/animation step.

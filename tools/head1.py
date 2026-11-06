@@ -332,7 +332,7 @@ if BODY:
             o=np.asarray(d).astype(np.float32); o[...,:3]=o[...,:3]*(1-a[...,None])+np.array([13,13,17])*a[...,None]; return Image.fromarray(o.astype(np.uint8),'RGBA')
         BODY_D=_ink(BODY_D,'/home/claude/work/tattoo/male_body_tattoo.png'); ARMS_D=_ink(ARMS_D,'/home/claude/work/tattoo/male_arms_tattoo.png')
     BODY_N=Image.open(_TB+'t0_000_ma__c_base_n03_censored.png').convert('RGB'); ARMS_N=Image.open(_TB+'a0_000_ma_base__hq_nd01.png').convert('RGB')
-    _hidefeet=any(x in os.environ.get('OUTFIT','').split(',') for x in ('platform','boots','tron'))
+    _hidefeet=any(x in os.environ.get('OUTFIT','').split(',') for x in ('platform','boots','tron','vinyl'))
     for s_ in mesh.decode(cr2w.load_loose(_B+'t0_000_pma_base__full.mesh'))['subs']:
         if _hidefeet and s_['chunk']==7: continue
         parts.append(dict(pos=s_['pos'],idx=s_['idx'],uv=s_['uv0'],tex=BODY_D,alpha=0,name='body'))
@@ -479,6 +479,13 @@ if OUTFIT and BODY:
                         mn=_cc[s_['chunk']] if s_['chunk']<len(_cc) else _cc[0]
                         parts.append(dict(pos=s_['pos'],idx=s_['idx'],uv=s_['uv0'],nrm=s_.get('nrm'),tex=_stt if 'dec' in mn else Image.fromarray((_bc['albedo']*255).astype(np.uint8)).convert('RGBA'),alpha=2 if 'dec' in mn else 0,name='bolero_dec' if 'dec' in mn else 'bolerocuff_ml'))
             print(it,'interim(no mask)' if _bk['interim'] else 'full', _ml5.MISSING)
+            continue
+        if it=='vinyl':          # PinkyDude Vinyl Platform Boots, Black (male mesh, self-contained metal_base set)
+            import garments as _ga7
+            _VT='base\\pkd_shop\\garment\\feet\\pkd_s1_000_vinylplatformboots\\textures\\vinylplatformboots_'
+            VIN={k:xbm.load(_ga7.segs_of(_VT+k+'01.xbm')) for k in ('d','m','r','n')}
+            for s_ in mesh.decode(_ga7.segs_of('base\\pkd_shop\\garment\\feet\\pkd_s1_001_vinylplatformboots\\s1_001_pma_vinylplatformboots.mesh'))['subs']:
+                parts.append(dict(pos=s_['pos'],idx=s_['idx'],uv=s_['uv0'],nrm=s_.get('nrm'),tex=VIN['d'].convert('RGBA'),alpha=0,name='vinyl'))
             continue
         if it=='walletchain':    # Edgerunner wallet chain re-finished in polished silver
             q='pkd_rvcoondumpster\\denimedgerunner\\i1_pma_denimedgerunner_chain_base_body.mesh'

@@ -20,10 +20,10 @@ Every separate clothing / accessory piece is its own **bodygroup**: one submodel
 | torso_outer | long_fur_coat, fur_jacket, bolero_black, none |
 | legs | baggy_jeans_black, synth_pants_black, denim_pants, none |
 | legs_acc | wallet_chain_silver, none |
-| feet | platform_ankle, tron_red, edgerunner_boots, barefoot |
+| feet | vinyl_platform_black, tron_red, edgerunner_boots, barefoot  (yusei platform_ankle REMOVED 2026-11-06) |
 | neck_jewelry | valentino_cross_silver_rope, none |
 | wrist_left | nd_cross_bracelet_silver, none |
-| props (separate PAC models) | whiskey_bottle, whiskey_glass_filled |
+| props (separate PAC models) | whiskey_bottle = B4 `drink_bottle_m_whiskey` (capped); whiskey_glass = G1 `glass_f_whiskey` with its whiskey fluid layer |
 
 ## PACs and repos
 - The outfit sets will be split into **separate PAC files**, one per set. The user will define the sets during PAC setup.

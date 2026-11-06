@@ -84,6 +84,8 @@ if 'OUTFIT' in globals() and OUTFIT:
             M[_key+'_ml']=G.material(_key+'_ml',base=Image.fromarray((_b['albedo']*255).astype(np.uint8)),normal=glb.cp_normal(_ni),mr=glb.mr_map(Image.fromarray((_b['rough']*255).astype(np.uint8)),Image.fromarray((_b['metal']*255).astype(np.uint8))),ext={'cull':1})
             M[it+'_glow']=G.material(it+'_glow',color=(1.0,0.02,0.02,1),emis=Image.new('RGB',(4,4),(255,8,6)),emis_f=(3,3,3),rough=0.3)
             M[it+'_dec']=G.material(it+'_dec',base=Image.new('RGBA',(4,4),(20,20,21,255)) if False else None,alpha='BLEND',rough=0.8,ext={'order':1}) if False else G.material(it+'_dec',base=xbm.load(garments.segs_of('base\\characters\\common\\textures\\decals\\garment_decals_d01.xbm')).convert('RGBA'),color=(0.08,0.08,0.085,1),alpha='BLEND',rough=0.8,ext={'order':1})
+        elif it=='vinyl':
+            _sz=VIN['d'].size; M['vinyl']=G.material('vinyl',base=VIN['d'].convert('RGB'),normal=glb.cp_normal(VIN['n']),mr=glb.mr_map(VIN['r'].convert('L').resize(_sz),VIN['m'].convert('L').resize(_sz)))
         elif it=='walletchain':
             _cl=np.asarray(DEN['d01'].convert('L').resize((2048,2048))).astype(np.float32); _cl=np.clip(150+(_cl-_cl.mean())*0.5,90,215).astype(np.uint8)
             M['chain_silver']=G.material('chain_silver',base=Image.fromarray(np.dstack([_cl,_cl,(_cl*1.02).clip(0,255).astype(np.uint8)])),normal=_dn_,rough=0.22,metal=1.0)
