@@ -1,0 +1,405 @@
+[
+ {
+  "slot": "skin_color",
+  "idx": 0,
+  "cls": "gameuiAppearanceInfo",
+  "pick": [
+   "h0_000_pma__basehead__01_ca_pale",
+   "01"
+  ],
+  "resource": null
+ },
+ {
+  "slot": "skin_type",
+  "idx": 0,
+  "cls": "gameuiSwitcherInfo",
+  "pick": [
+   "skin_type_01"
+  ],
+  "resource": null
+ },
+ {
+  "slot": "hairstyle",
+  "idx": 0,
+  "cls": "gameuiSwitcherInfo",
+  "pick": [
+   "hair_color38",
+   "hair_color_fpp_38"
+  ],
+  "resource": null
+ },
+ {
+  "slot": "hair_color38",
+  "idx": 24,
+  "cls": "gameuiAppearanceInfo",
+  "pick": [
+   "25_black_salt_n_pepper",
+   null
+  ],
+  "resource": "base\\characters\\head\\player_base_heads\\appearances\\hairs\\hh_037_pma__hairs_145.app"
+ },
+ {
+  "slot": "eyes",
+  "idx": 14,
+  "cls": "gameuiMorphInfo",
+  "pick": [
+   "morph",
+   "h141",
+   "UI-CharacterCreation-eyes"
+  ],
+  "resource": {}
+ },
+ {
+  "slot": "eyes_color",
+  "idx": 6,
+  "cls": "gameuiAppearanceInfo",
+  "pick": [
+   "he_000_pma__basehead__15_gradient_light_blue",
+   null
+  ],
+  "resource": "base\\characters\\head\\player_base_heads\\appearances\\head\\he_000__basehead.app"
+ },
+ {
+  "slot": "eyebrows",
+  "idx": 7,
+  "cls": "gameuiSwitcherInfo",
+  "pick": [
+   "eyebrows_color8"
+  ],
+  "resource": null
+ },
+ {
+  "slot": "eyebrows_color8",
+  "idx": 5,
+  "cls": "gameuiAppearanceInfo",
+  "pick": null,
+  "resource": "base\\characters\\head\\player_base_heads\\appearances\\head\\eyebrows\\heb_000__basehead_08.app"
+ },
+ {
+  "slot": "eyelash_color",
+  "idx": 0,
+  "cls": "gameuiAppearanceInfo",
+  "pick": [
+   "male__05_brown_liquorice",
+   null
+  ],
+  "resource": "base\\characters\\head\\player_base_heads\\appearances\\head\\hel_000__basehead.app"
+ },
+ {
+  "slot": "nose",
+  "idx": 10,
+  "cls": "gameuiMorphInfo",
+  "pick": [
+   "morph",
+   "h102",
+   "UI-CharacterCreation-nose"
+  ],
+  "resource": {}
+ },
+ {
+  "slot": "mouth",
+  "idx": 14,
+  "cls": "gameuiMorphInfo",
+  "pick": [
+   "morph",
+   "h143",
+   "UI-CharacterCreation-mouth"
+  ],
+  "resource": {}
+ },
+ {
+  "slot": "jaw",
+  "idx": 3,
+  "cls": "gameuiMorphInfo",
+  "pick": [
+   "morph",
+   "h034",
+   "UI-CharacterCreation-jaw"
+  ],
+  "resource": {}
+ },
+ {
+  "slot": "ear",
+  "idx": 0,
+  "cls": "gameuiMorphInfo",
+  "pick": [
+   "morph",
+   "<none>",
+   "UI-CharacterCreation-ear"
+  ],
+  "resource": {}
+ },
+ {
+  "slot": "beard",
+  "idx": 0,
+  "cls": "gameuiSwitcherInfo",
+  "pick": [
+   "beard0"
+  ],
+  "resource": null
+ },
+ {
+  "slot": "beard0",
+  "idx": 0,
+  "cls": "gameuiSwitcherInfo",
+  "pick": [
+   "beard_color0_0"
+  ],
+  "resource": null
+ },
+ {
+  "slot": "beard_color0_0",
+  "idx": 0,
+  "cls": "gameuiAppearanceInfo",
+  "pick": [
+   null,
+   null
+  ],
+  "resource": null
+ },
+ {
+  "slot": "cyberware",
+  "idx": 0,
+  "cls": "gameuiSwitcherInfo",
+  "pick": [
+   "cyberware_00",
+   "hairstyle"
+  ],
+  "resource": null
+ },
+ {
+  "slot": "scars",
+  "idx": 2,
+  "cls": "gameuiAppearanceInfo",
+  "pick": [
+   "h0_000_pma__scars_01__scar_02",
+   "02"
+  ],
+  "resource": "base\\characters\\head\\player_base_heads\\appearances\\head\\hx_000__scars.app"
+ },
+ {
+  "slot": "facial_tattoo",
+  "idx": 0,
+  "cls": "gameuiSwitcherInfo",
+  "pick": [
+   "facial_tattoo_00"
+  ],
+  "resource": null
+ },
+ {
+  "slot": "piercings",
+  "idx": 0,
+  "cls": "gameuiSwitcherInfo",
+  "pick": [
+   "piercings_00"
+  ],
+  "resource": null
+ },
+ {
+  "slot": "piercings_00",
+  "idx": 0,
+  "cls": "gameuiAppearanceInfo",
+  "pick": [
+   null,
+   null
+  ],
+  "resource": null
+ },
+ {
+  "slot": "teeth",
+  "idx": 0,
+  "cls": "gameuiAppearanceInfo",
+  "pick": [
+   "male_ht_000__basehead",
+   "00"
+  ],
+  "resource": "base\\characters\\head\\player_base_heads\\appearances\\head\\ht_000__basehead.app"
+ },
+ {
+  "slot": "makeupEyes",
+  "idx": 0,
+  "cls": "gameuiSwitcherInfo",
+  "pick": [
+   "makeupEyes_00"
+  ],
+  "resource": null
+ },
+ {
+  "slot": "makeupEyes_00",
+  "idx": 0,
+  "cls": "gameuiAppearanceInfo",
+  "pick": [
+   null,
+   null
+  ],
+  "resource": null
+ },
+ {
+  "slot": "makeupLips_type",
+  "idx": 0,
+  "cls": "gameuiSwitcherInfo",
+  "pick": [
+   "makeupLips_none"
+  ],
+  "resource": null
+ },
+ {
+  "slot": "makeupLips_none",
+  "idx": 0,
+  "cls": "gameuiSwitcherInfo",
+  "pick": [
+   "makeupLips_none_00"
+  ],
+  "resource": null
+ },
+ {
+  "slot": "makeupLips_none_00",
+  "idx": 0,
+  "cls": "gameuiAppearanceInfo",
+  "pick": [
+   null,
+   null
+  ],
+  "resource": null
+ },
+ {
+  "slot": "makeupCheeks",
+  "idx": 0,
+  "cls": "gameuiSwitcherInfo",
+  "pick": [
+   "makeupCheeks_00"
+  ],
+  "resource": null
+ },
+ {
+  "slot": "makeupCheeks_00",
+  "idx": 0,
+  "cls": "gameuiAppearanceInfo",
+  "pick": [
+   null,
+   null
+  ],
+  "resource": null
+ },
+ {
+  "slot": "makeupPimples",
+  "idx": 0,
+  "cls": "gameuiSwitcherInfo",
+  "pick": [
+   "makeupPimples_00"
+  ],
+  "resource": null
+ },
+ {
+  "slot": "makeupPimples_00",
+  "idx": 0,
+  "cls": "gameuiAppearanceInfo",
+  "pick": [
+   null,
+   null
+  ],
+  "resource": null
+ },
+ {
+  "slot": "nails_l",
+  "idx": 0,
+  "cls": "gameuiMorphInfo",
+  "pick": [
+   "morph",
+   "<none>",
+   "UI-CharacterCreation-nails"
+  ],
+  "resource": {
+   "link": "nails_size",
+   "linkController": 1
+  }
+ },
+ {
+  "slot": "nails_color",
+  "idx": 0,
+  "cls": "gameuiAppearanceInfo",
+  "pick": null,
+  "resource": "base\\characters\\common\\player_base_bodies\\appearances\\a0_000_base__nails.app"
+ },
+ {
+  "slot": "nipples",
+  "idx": 0,
+  "cls": "gameuiSwitcherInfo",
+  "pick": [
+   "nipples_01"
+  ],
+  "resource": null
+ },
+ {
+  "slot": "body_tattoo",
+  "idx": 0,
+  "cls": "gameuiSwitcherInfo",
+  "pick": [
+   "body_tattoo_00"
+  ],
+  "resource": null
+ },
+ {
+  "slot": "body_scars",
+  "idx": 0,
+  "cls": "gameuiSwitcherInfo",
+  "pick": [
+   "body_scars_00"
+  ],
+  "resource": null
+ },
+ {
+  "slot": "genitals",
+  "idx": 1,
+  "cls": "gameuiSwitcherInfo",
+  "pick": [
+   "genitals_01",
+   "penis_base",
+   "penis_base_hairstyle"
+  ],
+  "resource": null
+ },
+ {
+  "slot": "penis_base",
+  "idx": 1,
+  "cls": "gameuiMorphInfo",
+  "pick": [
+   "morph",
+   "<none>",
+   "LocKey#23173"
+  ],
+  "resource": {
+   "defaultIndex": 1,
+   "enabled": 0,
+   "link": "genitals_size",
+   "linkController": 1,
+   "censorFlag": {
+    "Censor_Nudity": [
+     "ERR",
+     "",
+     "unpack_from requires a buffer of at least 23012244 bytes for unpacking 2 bytes at offset 23012242 (actual buffer size is 1490384)"
+    ]
+   },
+   "censorFlagAction": "Deactivate"
+  }
+ },
+ {
+  "slot": "penis_base_hairstyle",
+  "idx": 0,
+  "cls": "gameuiSwitcherInfo",
+  "pick": [
+   "penis_base_hairstyle_00"
+  ],
+  "resource": null
+ },
+ {
+  "slot": "penis_base_hairstyle_00",
+  "idx": 0,
+  "cls": "gameuiAppearanceInfo",
+  "pick": [
+   null,
+   null
+  ],
+  "resource": null
+ }
+]
