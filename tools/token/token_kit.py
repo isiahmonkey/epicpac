@@ -363,7 +363,7 @@ def main():
             else: rough=np.full(n.size[::-1],float(sm.get('rough') or 0.6),np.float32)
             gloss=np.clip((1-rough)*1.3,0,1)**1.5
             if nm in METAL_MASKED and sm.get('mr') is not None:
-                mt=np.asarray(sm['mr'].convert('RGB').resize(n.size,Image.LANCZOS)).astype(np.float32)[...,2]/255; gloss=np.clip(gloss*0.45+mt,0,1)
+                mt=np.asarray(sm['mr'].convert('RGB').resize(n.size,Image.LANCZOS)).astype(np.float32)[...,2]/255; gloss=np.clip(mt*(mt>0.6),0,1)   # only real metal reflects
             n=n.convert('RGBA'); n.putalpha(Image.fromarray((gloss*255).astype(np.uint8)))
             n.save(KIT+'materialsrc/%s_%s_n.tga'%(NAME,nm)); open(KIT+'materialsrc/%s_%s_n.txt'%(NAME,nm),'w').write('nocompress 0\nnormal 1\n'); NDONE.add(nm)
         elif nm in NORMALS and os.path.exists(NORMALS[nm]):
@@ -372,7 +372,7 @@ def main():
         if c in ('metal','cloth') and has_a: A=' "$alphatest" "1"\n "$alphatestreference" "0.45"\n'
         body=VMT_OVERRIDE.get(nm,VMTX[c])
         if os.path.exists(KIT+'materialsrc/%s_%s_n.tga'%(NAME,nm)) and '$bumpmap' not in body and texdone_n(nm): body=' "$bumpmap" "{D}/{M}_n"\n'+body
-        if nm in METAL_MASKED: body+=' "$envmap" "env_cubemap"\n "$normalmapalphaenvmapmask" "1"\n "$envmaptint" "[.9 .9 .92]"\n "$envmapcontrast" "1"\n "$phongalbedotint" "1"\n'
+        if nm in METAL_MASKED: body+=' "$envmap" "env_cubemap"\n "$normalmapalphaenvmapmask" "1"\n "$envmaptint" "[.35 .35 .36]"\n "$envmapcontrast" "1"\n "$envmapsaturation" "0"\n'
         body=body.replace('{A}',A).replace('{D}',MATDIR).replace('{M}','%s_%s'%(NAME,nm))
         open(KIT+'materials/%s_%s.vmt'%(NAME,nm),'w',newline='\r\n').write('"VertexLitGeneric"\n{\n "$basetexture" "%s/%s_%s"\n%s}\n'%(MATDIR,NAME,nm,body))
     def tris_of(names,chunks=None):
