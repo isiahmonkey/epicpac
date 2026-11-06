@@ -50,7 +50,7 @@ LAYOUT={
 }
 FLATTEN={'bolero_ml':0.15,'bolerocuff_ml':0.15}
 LEATHER=' "$phong" "1"\n "$phongexponent" "30"\n "$phongboost" "0.9"\n "$phongfresnelranges" "[0.3 0.6 1]"\n{A}'
-SILVER=' "$envmap" "environment maps/metal_generic_002"\n "$envmaptint" "[1.6 1.6 1.65]"\n "$envmapcontrast" "1"\n "$envmapsaturation" "0"\n "$phong" "1"\n "$phongexponent" "150"\n "$phongboost" "9"\n "$phongalbedotint" "1"\n "$phongfresnelranges" "[1 1 1]"\n "$halflambert" "1"\n{A}'
+SILVER=' "$envmap" "env_cubemap"\n "$envmaptint" "[.85 .85 .88]"\n "$envmapcontrast" "1"\n "$envmapsaturation" "0"\n "$envmapfresnel" "0.6"\n "$phong" "1"\n "$phongexponent" "60"\n "$phongboost" "6"\n "$phongalbedotint" "1"\n "$phongfresnelranges" "[0.6 0.8 1]"\n "$rimlight" "1"\n "$rimlightexponent" "6"\n "$rimlightboost" "1.5"\n{A}'
 BLACKMETAL=' "$envmap" "environment maps/metal_generic_002"\n "$envmaptint" "[.07 .07 .075]"\n "$phong" "1"\n "$phongexponent" "35"\n "$phongboost" "2.5"\n "$phongfresnelranges" "[0.4 0.8 1]"\n "$halflambert" "1"\n{A}'
 BLACKMETAL_N=' "$bumpmap" "{D}/{M}_n"\n'+BLACKMETAL
 CARDS_DARK=' "$alphatest" "1"\n "$alphatestreference" "0.4"\n "$allowalphatocoverage" "1"\n "$nocull" "1"\n "$phong" "1"\n "$phongexponent" "10"\n "$phongboost" "0.12"\n'
@@ -61,7 +61,7 @@ VMT_OVERRIDE={'eyeshadow':' "$translucent" "1"\n "$nocull" "1"\n','cyberware':BL
  'facecw_face':BLACKMETAL_N,'facecw_nose':BLACKMETAL_N,'eyes':EYES,
  'hair':HAIR,'hatfur':HAIR,'brows':' "$bumpmap" "{D}/{M}_n"\n'+CARDS_DARK.replace('"0.12"','"0.05"'),'brows_s7':CARDS_DARK,'brows_s14':CARDS_DARK,'lashes':CARDS_DARK,
  'haircap':HAIR.replace('"0.4"','"0.12"'),'bolero_ml':LEATHER,'bolerocuff_ml':LEATHER,'chain_silver':SILVER,'earring':SILVER,'nd_acc':SILVER,'vchain':SILVER,'vcross':SILVER}
-DARKEN={'bolero_ml':0.38,'bolerocuff_ml':0.38,'mis_tank':0.7,'den_pants':0.7,'vinyl':0.7,'hair':0.3,'hatfur':0.32,'haircap':0.3,'brows':0.6,'brows_s7':0.6,'brows_s14':0.6,'chain_silver':0.28,'earring':0.3,'nd_acc':0.28,'vchain':0.28,'vcross':0.28}   # polished metal: dark diffuse, the shine comes from the cubemap
+DARKEN={'bolero_ml':0.38,'bolerocuff_ml':0.38,'mis_tank':0.7,'den_pants':0.7,'vinyl':0.7,'hair':0.3,'hatfur':0.32,'haircap':0.3,'brows':0.6,'brows_s7':0.6,'brows_s14':0.6,'chain_silver':1.15,'earring':1.1,'nd_acc':0.8,'vchain':1.0,'vcross':1.0}   # polished metal: dark diffuse, the shine comes from the cubemap
 BODY_MODEL='token_body'; KEEP=False; KITZIP='token_kit.zip'; PACZIP='token_pac3.zip'; BATNAME='compile_token.bat'
 DEFAULT_ON={'head','arms','neck_cyberware','head_hair','face_cyberware','face_piercings','face_decal','ear_left','ear_right'}   # groups without a 'blank' at index 0
 
@@ -141,6 +141,11 @@ NORMALS={  # extra normal maps where they carry the look
  'arms':'/home/claude/work/tex/base/a0_000_ma_base__hq_nd01.png',
  'facecw_face':'/home/claude/work/tex/base/hx_cyberware_13_m02.png','facecw_nose':'/home/claude/work/tex/base/hx_cyberware_13_d02.png'}
 CAP=None
+METAL_MASKED={'vinyl','den_pants','bolero_ml'}   # garments with metal hardware (boot chains, buckles, zips): metal areas reflect, stay bright
+def metal_of(nm,size):
+    mr=STAGED_MATS.get(nm,{}).get('mr')
+    if mr is None: return None
+    return np.asarray(mr.convert('RGB').resize(size,Image.LANCZOS)).astype(np.float32)[...,2]/255
 EYE_LID_SIGN=1
 LOCK_FINGERS=True   # citizen player models don't hand their finger bones to merged models (male_05 check): fingers ride the hand bone, pre-curled
 FCURL=None
@@ -274,7 +279,10 @@ def main():
             a=np.asarray(im).astype(np.float32); rgb=a[...,:3]; sat=(rgb.max(2)-rgb.min(2))/np.maximum(rgb.max(2),1)
             k=np.where(sat<0.35,0.35,1.0)[...,None]; a[...,:3]=rgb*k; im=Image.fromarray(np.clip(a,0,255).astype(np.uint8),im.mode)
         if nm in DARKEN:
-            a=np.asarray(im).astype(np.float32); a[...,:3]*=DARKEN[nm]; im=Image.fromarray(np.clip(a,0,255).astype(np.uint8),im.mode)
+            a=np.asarray(im).astype(np.float32); k=DARKEN[nm]
+            mt=metal_of(nm,im.size) if nm in METAL_MASKED else None
+            if mt is not None: k=(k*(1-mt)+1.25*mt)[...,None]
+            a[...,:3]*=k; im=Image.fromarray(np.clip(a,0,255).astype(np.uint8),im.mode)
         if nm in ('facecw_face','facecw_nose'):   # Emmerich plates: crisp metal plate (alphatest) + chrome bevels from the normal map + soft incision rim (translucent)
             a=np.asarray(im.convert('RGBA')).astype(np.float32); al=a[...,3]/255
             plate=(al>0.6).astype(np.float32); rim=np.where(al<=0.6,al,0)
@@ -311,7 +319,10 @@ def main():
             sm=STAGED_MATS[nm]; n=sm['normal'].convert('RGB').resize((2048,2048) if nm in TEXCAP and TEXCAP[nm]>=2048 else (1024,1024),Image.LANCZOS)
             if sm.get('mr') is not None: rough=np.asarray(sm['mr'].convert('RGB').resize(n.size,Image.LANCZOS)).astype(np.float32)[...,1]/255
             else: rough=np.full(n.size[::-1],float(sm.get('rough') or 0.6),np.float32)
-            gloss=np.clip((1-rough)*1.3,0,1)**1.5; n=n.convert('RGBA'); n.putalpha(Image.fromarray((gloss*255).astype(np.uint8)))
+            gloss=np.clip((1-rough)*1.3,0,1)**1.5
+            if nm in METAL_MASKED and sm.get('mr') is not None:
+                mt=np.asarray(sm['mr'].convert('RGB').resize(n.size,Image.LANCZOS)).astype(np.float32)[...,2]/255; gloss=np.clip(gloss*0.45+mt,0,1)
+            n=n.convert('RGBA'); n.putalpha(Image.fromarray((gloss*255).astype(np.uint8)))
             n.save(KIT+'materialsrc/%s_%s_n.tga'%(NAME,nm)); open(KIT+'materialsrc/%s_%s_n.txt'%(NAME,nm),'w').write('nocompress 0\nnormal 1\n'); NDONE.add(nm)
         elif nm in NORMALS and os.path.exists(NORMALS[nm]):
             nrm_rgb(NORMALS[nm],size=(1024,1024)).save(KIT+'materialsrc/%s_%s_n.tga'%(NAME,nm)); open(KIT+'materialsrc/%s_%s_n.txt'%(NAME,nm),'w').write('nocompress 0\nnormal 1\n')
@@ -319,6 +330,7 @@ def main():
         if c in ('metal','cloth') and has_a: A=' "$alphatest" "1"\n "$alphatestreference" "0.45"\n'
         body=VMT_OVERRIDE.get(nm,VMTX[c])
         if os.path.exists(KIT+'materialsrc/%s_%s_n.tga'%(NAME,nm)) and '$bumpmap' not in body and texdone_n(nm): body=' "$bumpmap" "{D}/{M}_n"\n'+body
+        if nm in METAL_MASKED: body+=' "$envmap" "env_cubemap"\n "$normalmapalphaenvmapmask" "1"\n "$envmaptint" "[.9 .9 .92]"\n "$envmapcontrast" "1"\n "$phongalbedotint" "1"\n'
         body=body.replace('{A}',A).replace('{D}',MATDIR).replace('{M}','%s_%s'%(NAME,nm))
         open(KIT+'materials/%s_%s.vmt'%(NAME,nm),'w',newline='\r\n').write('"VertexLitGeneric"\n{\n "$basetexture" "%s/%s_%s"\n%s}\n'%(MATDIR,NAME,nm,body))
     def tris_of(names,chunks=None):
