@@ -348,6 +348,9 @@ def main():
         for jb,L in JIGGLE.items():
             if any('earring' in str(o) for o in groups.values()):
                 qc.append('$jigglebone "%s"\n{\n is_flexible\n {\n  length %.2f\n  tip_mass 0\n  pitch_stiffness 40\n  pitch_damping 3\n  yaw_stiffness 40\n  yaw_damping 3\n  angle_constraint 40\n }\n}'%(jb,max(L,0.5)))
+        # flag every Valve bone for bone merging: without this the player only computes the bones IT needs, and the citizen
+        # models leave finger bones out of that set -> Token's fingers stayed in bind pose (the stretched-hand bug on male_*)
+        qc+=['$bonemerge "%s"'%n for n in RT.vn if 'Finger' in n or 'Hand' in n or 'Forearm' in n]
         qc.append('$sequence "idle" "%s_bind.smd" fps 1'%model)
         open(KIT+'modelsrc/%s.qc'%model,'w',newline='\r\n').write('\n'.join(qc)+'\n')
         plan[model]=dict(bodygroups=groupsout,materials=sorted(mats),tris=len(allt))
