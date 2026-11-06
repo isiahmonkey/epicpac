@@ -50,7 +50,7 @@ LAYOUT={
 }
 FLATTEN={'bolero_ml':0.15,'bolerocuff_ml':0.15}
 LEATHER=' "$phong" "1"\n "$phongexponent" "30"\n "$phongboost" "0.9"\n "$phongfresnelranges" "[0.3 0.6 1]"\n{A}'
-SILVER=' "$envmap" "env_cubemap"\n "$envmaptint" "[.85 .85 .88]"\n "$envmapcontrast" "1"\n "$envmapsaturation" "0"\n "$envmapfresnel" "0.6"\n "$phong" "1"\n "$phongexponent" "60"\n "$phongboost" "6"\n "$phongalbedotint" "1"\n "$phongfresnelranges" "[0.6 0.8 1]"\n "$rimlight" "1"\n "$rimlightexponent" "6"\n "$rimlightboost" "1.5"\n{A}'
+SILVER=' "$envmap" "env_cubemap"\n "$envmaptint" "[.45 .45 .47]"\n "$envmapcontrast" "1"\n "$envmapsaturation" "0"\n "$envmapfresnel" "0.6"\n "$phong" "1"\n "$phongexponent" "80"\n "$phongboost" "4"\n "$phongalbedotint" "1"\n "$phongfresnelranges" "[0.6 0.8 1]"\n "$rimlight" "1"\n "$rimlightexponent" "8"\n "$rimlightboost" "0.6"\n{A}'
 BLACKMETAL=' "$envmap" "environment maps/metal_generic_002"\n "$envmaptint" "[.07 .07 .075]"\n "$phong" "1"\n "$phongexponent" "35"\n "$phongboost" "2.5"\n "$phongfresnelranges" "[0.4 0.8 1]"\n "$halflambert" "1"\n{A}'
 BLACKMETAL_N=' "$bumpmap" "{D}/{M}_n"\n'+BLACKMETAL
 CARDS_DARK=' "$alphatest" "1"\n "$alphatestreference" "0.4"\n "$allowalphatocoverage" "1"\n "$nocull" "1"\n "$phong" "1"\n "$phongexponent" "10"\n "$phongboost" "0.12"\n'
@@ -61,7 +61,7 @@ VMT_OVERRIDE={'eyeshadow':' "$translucent" "1"\n "$nocull" "1"\n','cyberware':BL
  'facecw_face':BLACKMETAL_N,'facecw_nose':BLACKMETAL_N,'eyes':EYES,
  'hair':HAIR,'hatfur':HAIR,'brows':' "$bumpmap" "{D}/{M}_n"\n'+CARDS_DARK.replace('"0.12"','"0.05"'),'brows_s7':CARDS_DARK,'brows_s14':CARDS_DARK,'lashes':CARDS_DARK,
  'haircap':HAIR.replace('"0.4"','"0.12"'),'bolero_ml':LEATHER,'bolerocuff_ml':LEATHER,'chain_silver':SILVER,'earring':SILVER,'nd_acc':SILVER,'vchain':SILVER,'vcross':SILVER}
-DARKEN={'bolero_ml':0.38,'bolerocuff_ml':0.38,'mis_tank':0.7,'den_pants':0.7,'vinyl':0.7,'hair':0.3,'hatfur':0.32,'haircap':0.3,'brows':0.6,'brows_s7':0.6,'brows_s14':0.6,'chain_silver':1.15,'earring':1.1,'nd_acc':0.8,'vchain':1.0,'vcross':1.0}   # polished metal: dark diffuse, the shine comes from the cubemap
+DARKEN={'bolero_ml':0.38,'bolerocuff_ml':0.38,'mis_tank':0.7,'den_pants':0.7,'vinyl':0.7,'hair':0.3,'hatfur':0.32,'haircap':0.3,'brows':0.6,'brows_s7':0.6,'brows_s14':0.6,'chain_silver':0.62,'earring':1.1,'nd_acc':0.8,'vchain':1.0,'vcross':1.0}   # polished metal: dark diffuse, the shine comes from the cubemap
 BODY_MODEL='token_body'; KEEP=False; KITZIP='token_kit.zip'; PACZIP='token_pac3.zip'; BATNAME='compile_token.bat'
 DEFAULT_ON={'head','arms','neck_cyberware','head_hair','face_cyberware','face_piercings','face_decal','ear_left','ear_right'}   # groups without a 'blank' at index 0
 
@@ -123,7 +123,7 @@ VMTX={
  'skin_arms':' "$bumpmap" "{D}/{M}_n"\n "$phong" "1"\n "$phongexponent" "14"\n "$phongboost" "0.5"\n "$phongfresnelranges" "[0.2 0.6 1.2]"\n "$halflambert" "1"\n',
  'cards':' "$alphatest" "1"\n "$alphatestreference" "0.4"\n "$allowalphatocoverage" "1"\n "$nocull" "1"\n "$halflambert" "1"\n "$phong" "1"\n "$phongexponent" "8"\n "$phongboost" "0.4"\n "$phongfresnelranges" "[0.3 0.6 1]"\n',
  'eyes':' "$selfillum" "1"\n "$selfillumtint" "[1.6 1.6 1.6]"\n "$phong" "1"\n "$phongexponent" "60"\n "$phongboost" "3"\n',
- 'glass':' "$translucent" "1"\n "$envmap" "environment maps/metal_generic_002"\n "$envmaptint" "[.5 .5 .52]"\n "$phong" "1"\n "$phongexponent" "80"\n "$phongboost" "6"\n',
+ 'glass':' "$translucent" "1"\n "$envmap" "env_cubemap"\n "$envmaptint" "[.06 .06 .07]"\n "$phong" "1"\n "$phongexponent" "80"\n "$phongboost" "1.5"\n',
  'glow':' "$selfillum" "1"\n "$selfillumtint" "[4 .2 .15]"\n',
  'metal':' "$envmap" "environment maps/metal_generic_002"\n "$envmaptint" "[.35 .35 .37]"\n "$envmapsaturation" "0.4"\n "$phong" "1"\n "$phongexponent" "40"\n "$phongboost" "3"\n "$phongfresnelranges" "[0.6 0.85 1]"\n "$halflambert" "1"\n{A}',
  'decal':' "$alphatest" "1"\n "$alphatestreference" "0.45"\n "$allowalphatocoverage" "1"\n "$halflambert" "1"\n',
