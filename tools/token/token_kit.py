@@ -130,9 +130,9 @@ VMTX={
  'cloth':' "$phong" "1"\n "$phongexponent" "12"\n "$phongboost" "1.2"\n "$phongfresnelranges" "[0.4 0.7 1]"\n{A}',
 }
 VMT_OVERRIDE['skin']=VMTX['skin_head']+' "$nocull" "1"\n'   # face/lids drawn from both sides: no holes where CP's lid normals face inward
-TEXCAP={'bolero_ml':2048,'bolerocuff_ml':2048,'den_pants':2048,'vinyl':2048,'den_hoodie':2048,'syn_pants':2048,'skin':2048,'jeans':2048,'mis_tank':2048,'body':2048,'arms':2048,'hair':1024,'coatfur':1024,'jacketfur':1024,'cyberware':2048,'ga_cyber':2048}
+TEXCAP={'skin':2048,'arms':2048,'body':1024,'mis_tank':2048,'hair':1024,'coatfur':1024,'jacketfur':1024}   # 2048 only where detail reads up close (face, tattooed arms, tank print); everything else 1024
 def to_tga(im,nm):
-    cap=TEXCAP.get(nm,1024); w,h=im.size; s=min(1.0,cap/max(w,h))
+    cap=TEXCAP.get(nm,512 if nm.startswith('ga_dec') else 1024); w,h=im.size; s=min(1.0,cap/max(w,h))
     if s<1: im=im.resize((max(4,int(w*s)),max(4,int(h*s))),Image.LANCZOS)
     return im
 NORMALS={  # extra normal maps where they carry the look
@@ -316,7 +316,7 @@ def main():
             Image.fromarray(((n*0.5+0.5)*255).astype(np.uint8)).save(KIT+'materialsrc/%s_%s_n.tga'%(NAME,nm)); open(KIT+'materialsrc/%s_%s_n.txt'%(NAME,nm),'w').write('nocompress 0\nnormal 1\n')
         elif nm in STAGED_MATS and STAGED_MATS[nm].get('normal') is not None and nm not in DERIVED_NORMAL and nm not in ('facecw_face','facecw_nose'):
             # the staging material's own normal map (CP garment normal + layer detail), gloss mask in alpha = Source phong mask
-            sm=STAGED_MATS[nm]; n=sm['normal'].convert('RGB').resize((2048,2048) if nm in TEXCAP and TEXCAP[nm]>=2048 else (1024,1024),Image.LANCZOS)
+            sm=STAGED_MATS[nm]; n=sm['normal'].convert('RGB').resize((2048,2048) if nm in ('skin',) else (1024,1024),Image.LANCZOS)
             if sm.get('mr') is not None: rough=np.asarray(sm['mr'].convert('RGB').resize(n.size,Image.LANCZOS)).astype(np.float32)[...,1]/255
             else: rough=np.full(n.size[::-1],float(sm.get('rough') or 0.6),np.float32)
             gloss=np.clip((1-rough)*1.3,0,1)**1.5
