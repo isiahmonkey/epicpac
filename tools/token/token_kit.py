@@ -49,9 +49,9 @@ LAYOUT={
  },
 }
 FLATTEN={'bolero_ml':0.15,'bolerocuff_ml':0.15}
-LEATHER=' "$phong" "1"\n "$phongexponent" "20"\n "$phongboost" "0.35"\n "$phongfresnelranges" "[0.3 0.6 1]"\n{A}'
+LEATHER=' "$nocull" "1"\n "$phong" "1"\n "$phongexponent" "20"\n "$phongboost" "0.35"\n "$phongfresnelranges" "[0.3 0.6 1]"\n{A}'
 SILVER=' "$envmap" "env_cubemap"\n "$envmaptint" "[.45 .45 .47]"\n "$envmapcontrast" "1"\n "$envmapsaturation" "0"\n "$envmapfresnel" "0.6"\n "$phong" "1"\n "$phongexponent" "80"\n "$phongboost" "4"\n "$phongalbedotint" "1"\n "$phongfresnelranges" "[0.6 0.8 1]"\n "$rimlight" "1"\n "$rimlightexponent" "8"\n "$rimlightboost" "0.6"\n{A}'
-BLACKMETAL=' "$envmap" "environment maps/metal_generic_002"\n "$envmaptint" "[.07 .07 .075]"\n "$phong" "1"\n "$phongexponent" "35"\n "$phongboost" "2.5"\n "$phongfresnelranges" "[0.4 0.8 1]"\n "$halflambert" "1"\n{A}'
+BLACKMETAL=' "$nocull" "1"\n "$envmap" "environment maps/metal_generic_002"\n "$envmaptint" "[.07 .07 .075]"\n "$phong" "1"\n "$phongexponent" "35"\n "$phongboost" "2.5"\n "$phongfresnelranges" "[0.4 0.8 1]"\n "$halflambert" "1"\n{A}'
 BLACKMETAL_N=' "$bumpmap" "{D}/{M}_n"\n'+BLACKMETAL
 CARDS_DARK=' "$alphatest" "1"\n "$alphatestreference" "0.4"\n "$allowalphatocoverage" "1"\n "$nocull" "1"\n "$phong" "1"\n "$phongexponent" "10"\n "$phongboost" "0.12"\n'
 EYES=' "$selfillum" "1"\n "$selfillumtint" "[2.2 2.2 2.2]"\n "$phong" "1"\n "$phongexponent" "60"\n "$phongboost" "1"\n'
@@ -119,7 +119,7 @@ def cls(nm):
     return 'cloth'
 VMTX={
  'skin_head':' "$bumpmap" "{D}/{M}_n"\n "$phong" "1"\n "$phongexponent" "14"\n "$phongboost" "0.9"\n "$phongfresnelranges" "[0.12 0.55 1.0]"\n "$rimlight" "1"\n "$rimlightexponent" "4"\n "$rimlightboost" "0.25"\n "$halflambert" "1"\n',
- 'skin_body':' "$bumpmap" "{D}/{M}_n"\n "$phong" "1"\n "$phongexponent" "14"\n "$phongboost" "0.5"\n "$phongfresnelranges" "[0.2 0.6 1.2]"\n "$halflambert" "1"\n',
+ 'skin_body':' "$nocull" "1"\n "$bumpmap" "{D}/{M}_n"\n "$phong" "1"\n "$phongexponent" "14"\n "$phongboost" "0.5"\n "$phongfresnelranges" "[0.2 0.6 1.2]"\n "$halflambert" "1"\n',
  'skin_arms':' "$bumpmap" "{D}/{M}_n"\n "$phong" "1"\n "$phongexponent" "14"\n "$phongboost" "0.5"\n "$phongfresnelranges" "[0.2 0.6 1.2]"\n "$halflambert" "1"\n',
  'cards':' "$alphatest" "1"\n "$alphatestreference" "0.4"\n "$allowalphatocoverage" "1"\n "$nocull" "1"\n "$halflambert" "1"\n "$phong" "1"\n "$phongexponent" "8"\n "$phongboost" "0.4"\n "$phongfresnelranges" "[0.3 0.6 1]"\n',
  'eyes':' "$selfillum" "1"\n "$selfillumtint" "[1.6 1.6 1.6]"\n "$phong" "1"\n "$phongexponent" "60"\n "$phongboost" "3"\n',
@@ -127,7 +127,7 @@ VMTX={
  'glow':' "$selfillum" "1"\n "$selfillumtint" "[4 .2 .15]"\n',
  'metal':' "$envmap" "environment maps/metal_generic_002"\n "$envmaptint" "[.35 .35 .37]"\n "$envmapsaturation" "0.4"\n "$phong" "1"\n "$phongexponent" "40"\n "$phongboost" "3"\n "$phongfresnelranges" "[0.6 0.85 1]"\n "$halflambert" "1"\n{A}',
  'decal':' "$alphatest" "1"\n "$alphatestreference" "0.45"\n "$allowalphatocoverage" "1"\n "$halflambert" "1"\n',
- 'cloth':' "$phong" "1"\n "$phongexponent" "12"\n "$phongboost" "1.2"\n "$phongfresnelranges" "[0.4 0.7 1]"\n{A}',
+ 'cloth':' "$nocull" "1"\n "$phong" "1"\n "$phongexponent" "12"\n "$phongboost" "1.2"\n "$phongfresnelranges" "[0.4 0.7 1]"\n{A}',
 }
 VMT_OVERRIDE['skin']=VMTX['skin_head']+' "$nocull" "1"\n'   # face/lids drawn from both sides: no holes where CP's lid normals face inward
 TEXCAP={'skin':2048,'arms':2048,'body':1024,'mis_tank':2048,'hair':1024,'coatfur':1024,'jacketfur':1024}   # 2048 only where detail reads up close (face, tattooed arms, tank print); everything else 1024
@@ -198,7 +198,8 @@ def untattoo_hands(im):
     m=HAND_UV_MASK.resize(im.size,Image.LANCZOS).filter(ImageFilter.GaussianBlur(im.size[0]/256))
     m=np.asarray(m).astype(np.float32)[...,None]/255; a=np.asarray(im.convert('RGBA')).astype(np.float32); c=np.asarray(clean).astype(np.float32)
     a[...,:3]=a[...,:3]*(1-m)+c[...,:3]*m; return Image.fromarray(a.astype(np.uint8),'RGBA')
-OCC_PARAM={'arms':(0.14,0.0,True)}   # name -> (reach in, edge margin in, two-sided)
+OCC_PARAM={'arms':(0.14,0.0,True)}
+SINK={'arms':0.05}   # name -> (reach in, edge margin in, two-sided)
 OCCLUDE={'arms':['ga_fingers'],'mis_tank':['bolero_ml','bolerocuff_ml'],'mis_print':['bolero_ml'],'mis_stitch':['bolero_ml','bolerocuff_ml']}   # inner layer -> outer layers that cover it
 OUTER={}   # outer part name -> (points, normals) in bind space, filled per model
 def covered(vp,vn,outer_names,reach=1.4,margin=2.4,both=False):
@@ -460,7 +461,9 @@ def main():
                 if nm=='eyes': vp=vp+np.array([0,0.03,0])   # seat the eyeballs ~0.75 mm deeper (+y = backward in the bind skeleton) so the lids close over them
                 Fi=remap[F].copy()
                 if nm in OCCLUDE and any(o in OUTER for o in OCCLUDE[nm]):   # drop inner-layer faces fully under the jacket: they poke through when the citizen animations bend the torso
-                    r_,m_,b_=OCC_PARAM.get(nm,(1.4,2.4,False)); hid=covered(vp,vn_,OCCLUDE[nm],r_,m_,b_); keep=~hid[Fi].all(1); print('   %s: %d/%d faces hidden under %s'%(nm,(~keep).sum(),len(Fi),OCCLUDE[nm])); Fi=Fi[keep]
+                    r_,m_,b_=OCC_PARAM.get(nm,(1.4,2.4,False)); hid=covered(vp,vn_,OCCLUDE[nm],r_,m_,b_)
+                    if nm in SINK: vp=vp-vn_*SINK[nm]*hid[:,None]; hid[:]=False   # tuck under the shell instead of cutting (cutting left holes at the finger roots)
+                    keep=~hid[Fi].all(1); print('   %s: %d/%d faces hidden under %s'%(nm,(~keep).sum(),len(Fi),OCCLUDE[nm])); Fi=Fi[keep]
                 a,b,c=vp[Fi[:,0]],vp[Fi[:,1]],vp[Fi[:,2]]
                 bad=(np.cross(b-a,c-a)*vn_[Fi].sum(1)).sum(1)<0; Fi[bad]=Fi[bad][:,[0,2,1]]; flip=False   # each triangle faces the way its normals point (Source culls back faces)
                 emit_mat(nm,p)
