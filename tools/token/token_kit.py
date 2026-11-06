@@ -335,6 +335,13 @@ def main():
                 if nm in ('arms',) or nm.startswith('ga_'):
                     lk=refit_hand(vp,lk)
                     if LOCK_FINGERS: vp,vn_,lk=lock_fingers(vp,vn_,lk)
+                if LOCK_FINGERS and nm not in ('arms',) and not nm.startswith('ga_'):   # any other piece touching a finger (cuffs, sleeves) rides the hand too
+                    fids={i for i,n in enumerate(RT.vn) if 'Finger' in n}; hL=RT.vn.index('ValveBiped.Bip01_L_Hand'); hR=RT.vn.index('ValveBiped.Bip01_R_Hand')
+                    def _rm(links,x):
+                        d={}
+                        for b,w in links: bb=((hL if x>0 else hR) if b in fids else b); d[bb]=d.get(bb,0)+w
+                        return list(d.items())
+                    lk=[_rm(l,v[0]) for l,v in zip(lk,vp)]
                 if nm in RIGID: lk=[[(RT.vn.index(RIGID[nm]),1.0)]]*len(vp)      # jewelry moves as one piece
                 if nm in RIGID_EXTRA and RIGID_EXTRA[nm] in VN: lk=[[(VN.index(RIGID_EXTRA[nm]),1.0)]]*len(vp)   # dangles from its jigglebone
                 if nm in HEADLIKE and cls(nm)!='cards':   # some CP head-family meshes carry inward normals: make them face out of the skull
