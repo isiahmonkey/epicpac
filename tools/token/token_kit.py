@@ -45,6 +45,9 @@ LAYOUT={
    'wrist_left':{'nd_cross_bracelet':['nd_acc']},
  },
 }
+FLATTEN={'bolero_ml':0.15,'bolerocuff_ml':0.15}
+LEATHER=' "$halflambert" "1"\n "$phong" "1"\n "$phongexponent" "28"\n "$phongboost" "1.6"\n "$phongfresnelranges" "[0.3 0.6 1]"\n{A}'
+VMT_OVERRIDE={'bolero_ml':LEATHER,'bolerocuff_ml':LEATHER}
 BODY_MODEL='token_body'; KEEP=False; KITZIP='token_kit.zip'; PACZIP='token_pac3.zip'; BATNAME='compile_token.bat'
 DEFAULT_ON={'head','arms','neck_cyberware','head_hair','face_cyberware','face_piercings','face_decal','ear_left','ear_right'}   # groups without a 'blank' at index 0
 
@@ -132,6 +135,9 @@ def main():
         im=to_tga(im.convert('RGBA'),nm)
         _p2=lambda v:1<<max(2,round(np.log2(v)))
         if im.size!=(_p2(im.size[0]),_p2(im.size[1])): im=im.resize((_p2(im.size[0]),_p2(im.size[1])),Image.LANCZOS)
+        if nm in FLATTEN:    # baked wear/scuff layers read as grey paint in Gmod's albedo-only shading: pull them back toward the base colour
+            a=np.asarray(im).astype(np.float32); base=np.median(a[...,:3].reshape(-1,3),0)
+            a[...,:3]=base+(a[...,:3]-base)*FLATTEN[nm]; im=Image.fromarray(np.clip(a,0,255).astype(np.uint8),im.mode)
         has_a=np.asarray(im)[...,3].min()<250
         if c not in ('cards','decal','glass') and not has_a: im=im.convert('RGB')
         im.save(KIT+'materialsrc/%s_%s.tga'%(NAME,nm)); open(KIT+'materialsrc/%s_%s.txt'%(NAME,nm),'w').write('nocompress 0\n')
@@ -140,7 +146,7 @@ def main():
             nrm_rgb(NORMALS[nm],size=(1024,1024)).save(KIT+'materialsrc/%s_%s_n.tga'%(NAME,nm)); open(KIT+'materialsrc/%s_%s_n.txt'%(NAME,nm),'w').write('nocompress 0\nnormal 1\n')
         elif c in ('skin_head','skin_body','skin_arms'): c='cloth'
         if c in ('metal','cloth') and has_a: A=' "$alphatest" "1"\n "$alphatestreference" "0.45"\n'
-        body=VMTX[c].replace('{A}',A).replace('{D}',MATDIR).replace('{M}','%s_%s'%(NAME,nm))
+        body=VMT_OVERRIDE.get(nm,VMTX[c]).replace('{A}',A).replace('{D}',MATDIR).replace('{M}','%s_%s'%(NAME,nm))
         open(KIT+'materials/%s_%s.vmt'%(NAME,nm),'w',newline='\r\n').write('"VertexLitGeneric"\n{\n "$basetexture" "%s/%s_%s"\n%s}\n'%(MATDIR,NAME,nm,body))
     def tris_of(names,chunks=None):
         T=[]

@@ -6,10 +6,10 @@ Everything lands in /mnt/user-data/outputs/token_build/ ; plans/<id>.json says w
 import sys, os, json, token_kit as K
 OUT='/mnt/user-data/outputs/token_build/'
 OUTFITS={
- 'outfit1':dict(desc='Misfits tank, Edgerunner denim pants, vinyl platforms, wallet chain, Valentino silver necklace',
+ 'outfit1':dict(desc='Misfits tank, black leather bolero, Edgerunner denim pants, vinyl platforms, wallet chain, Valentino silver necklace',
    staged='/home/claude/work/token/staged_outfit1.pkl',
    hide_skin=['pelvis','thighs','calves','feet'],      # base skin regions covered by this outfit
-   pieces={'torso_inner':'misfits_tank','legs':'denim_pants','feet':'vinyl_platform_black',
+   pieces={'torso_inner':'misfits_tank','torso_outer':'bolero_black','legs':'denim_pants','feet':'vinyl_platform_black',
            'legs_acc':'wallet_chain_silver','neck_jewelry':'valentino_cross_silver'}),
 }
 oid=sys.argv[1]
