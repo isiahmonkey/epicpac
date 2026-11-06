@@ -237,6 +237,7 @@ _q=_ER['pos']+_d+np.array([0,0,EARRING_LIFT])
 parts.append(dict(pos=_q,idx=_ER['idx'],uv=_ER['uv0'],tex=Image.open('/home/claude/work/staging/ear06_albedo.png').convert('RGBA'),alpha=0,name='earring'))
 # ---- axellysse fur hat (hat_fur_m_base_body.mesh), black_carbon: fur cards on hair.mt (hh_short01 + black_carbon.hp) + cap
 HAT=os.environ.get('HAT','1')=='1'
+HAT_GEO=HAT and os.environ.get('SHOW_HAT','1')=='1'   # SHOW_HAT=0: keep the black_carbon fur materials (fur jacket uses them) but hide the hat itself
 if HAT:
     _fa=modres.AR['axellysse_fur_collection']; _ff={f['hash']:f for f in _fa.files}
     _hat=mesh.decode(_fa.extract(_ff[names.fnv('axellysse\\fur_collection\\mesh\\hat_fur_m_base_body.mesh')]))['subs']
@@ -250,7 +251,7 @@ if HAT:
     for _k,_s in enumerate(_hat):
         q=warp_from_vanilla(_s['pos'],k=6)
         if _k==0: q,_l=float_on(q,hp[0],HM['geo']['subs'][0]['idx'],gap=0.0008)
-        parts.append(dict(pos=q,idx=_s['idx'],uv=_s['uv0'],tex=HAT_CAP if _k==0 else HAT_CARDS,alpha=0 if _k==0 else 2,name='hatcap' if _k==0 else 'hatfur'))
+        if HAT_GEO: parts.append(dict(pos=q,idx=_s['idx'],uv=_s['uv0'],tex=HAT_CAP if _k==0 else HAT_CARDS,alpha=0 if _k==0 else 2,name='hatcap' if _k==0 else 'hatfur'))
 # ---- Emmerich's face cyberware (CC cyberware_13: face plate on tattoo_06 decal + nose plate on freckles_01 decal), painted BLACK
 FACE_CW=os.environ.get('FACE_CW','1')=='1'
 if FACE_CW:
@@ -317,8 +318,14 @@ if BODY:
     _tone=GRADE.get(TONE,(66,42,30))
     BODY_D=grade(Image.open(_TB+'t0_000_ma__c_base_d03_censored.png').convert('RGBA'),_tone)
     ARMS_D=grade(Image.open(_TB+'a0_000_ma__c_base_hq_d01.png').convert('RGBA'),_tone)
+    TATTOO=os.environ.get('TATTOO','1')=='1'     # VTK Malvina (Female V) transferred to the male body/arm UVs
+    if TATTOO:
+        def _ink(d,t):
+            t=Image.open(t).resize(d.size,Image.LANCZOS); a=np.asarray(t)[...,3].astype(np.float32)/255*0.9   # healed ink, not marker-flat
+            o=np.asarray(d).astype(np.float32); o[...,:3]=o[...,:3]*(1-a[...,None])+np.array([13,13,17])*a[...,None]; return Image.fromarray(o.astype(np.uint8),'RGBA')
+        BODY_D=_ink(BODY_D,'/home/claude/work/tattoo/male_body_tattoo.png'); ARMS_D=_ink(ARMS_D,'/home/claude/work/tattoo/male_arms_tattoo.png')
     BODY_N=Image.open(_TB+'t0_000_ma__c_base_n03_censored.png').convert('RGB'); ARMS_N=Image.open(_TB+'a0_000_ma_base__hq_nd01.png').convert('RGB')
-    _hidefeet='platform' in os.environ.get('OUTFIT','')
+    _hidefeet=any(x in os.environ.get('OUTFIT','').split(',') for x in ('platform','boots'))
     for s_ in mesh.decode(cr2w.load_loose(_B+'t0_000_pma_base__full.mesh'))['subs']:
         if _hidefeet and s_['chunk']==7: continue
         parts.append(dict(pos=s_['pos'],idx=s_['idx'],uv=s_['uv0'],tex=BODY_D,alpha=0,name='body'))
@@ -378,6 +385,26 @@ if OUTFIT and BODY:
             print('platform textures',sorted(PLAT))
             for k_,s_ in enumerate(mesh.decode(_yb.extract(_ybf[2721687290290620523]))['subs']):
                 parts.append(dict(pos=s_['pos'],idx=s_['idx'],uv=s_['uv0'],nrm=s_.get('nrm'),tex=PLAT['boots_d' if k_==0 else 'metal_d'].convert('RGBA'),alpha=0,name='plat_'+('boots' if k_==0 else 'metal')))
+            continue
+        if it=='synthpants':     # tq Synth Pants, default appearance = Black (synth_black_basic.mlsetup over the vanilla Militech l1_078 mask set)
+            import ml as _ml,garments as _ga
+            _SP=r'base\tq\meshes\synth_pants.mesh'; _MK=r'base\characters\garment\corp_militech\legs\l1_078_pants__militech\textures\ml_l1_078_ma_pants__militech_masksset.mlmask'
+            _ml.FALLBACK_MASK=[np.full((8,8),255,np.uint8)]
+            SYN=_ml.bake(r'base\tq\textures\pants\synth_black_basic.mlsetup',_MK,2048); SYN['interim']=_ga.segs_of(_MK) is None
+            _nm=_ga.segs_of(r'base\characters\garment\corp_militech\legs\l1_078_pants__militech\textures\l1_078_ma_pants__militech_n01.xbm')
+            SYN['n01']=xbm.load(_nm) if _nm else None
+            _gd=xbm.load(_ga.segs_of(r'base\characters\common\textures\decals\garment_decals_d01.xbm')).convert('RGBA')
+            SYN['dec_n']=xbm.load(_ga.segs_of(r'base\characters\common\textures\decals\garment_decals_n01.xbm'))
+            _st=np.asarray(_gd).copy(); _st[...,:3]=(22,22,24); SYN['stitch']=Image.fromarray(_st,'RGBA'); SYN['zip']=_gd
+            print('synth pants interim(no mask)' if SYN['interim'] else 'synth pants full mask', _ml.MISSING)
+            for k_,s_ in enumerate(mesh.decode(_ga.segs_of(_SP))['subs']):
+                nm_=['syn_pants','syn_zip','syn_stitch','syn_stitch'][min(k_,3)]
+                parts.append(dict(pos=s_['pos'],idx=s_['idx'],uv=s_['uv0'],nrm=s_.get('nrm'),tex=Image.fromarray((SYN['albedo']*255).astype(np.uint8)).convert('RGBA') if k_==0 else (SYN['zip'] if k_==1 else SYN['stitch']),alpha=0 if k_==0 else 2,name=nm_))
+            continue
+        if it=='walletchain':    # Edgerunner wallet chain re-finished in polished silver
+            q='pkd_rvcoondumpster\\denimedgerunner\\i1_pma_denimedgerunner_chain_base_body.mesh'
+            for s_ in mesh.decode(_dn.extract(_dnf[names.fnv(q.lower())]))['subs']:
+                parts.append(dict(pos=s_['pos'],idx=s_['idx'],uv=s_['uv0'],nrm=s_.get('nrm'),tex=DEN['d01'],alpha=0,name='chain_silver'))
             continue
         q='pkd_rvcoondumpster\\denimedgerunner\\%s_pma_denimedgerunner_%s_base_body.mesh'%(_pre[it],it)
         for s_ in mesh.decode(_dn.extract(_dnf[names.fnv(q.lower())]))['subs']:

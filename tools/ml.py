@@ -6,6 +6,7 @@ MISSING=set()
 COLOR_OVERRIDE={}   # {layer index: linear rgb} - recolours a layer (e.g. Takemura white enamel -> black)
 LAYER_COLORS={}
 NORMALS=True
+FALLBACK_MASK=None   # used when the vanilla mlmask isn't staged yet (e.g. [full mask] -> base layer only)
 @functools.lru_cache(None)
 def tex(path):
     s=garments.segs_of(path)
@@ -48,7 +49,7 @@ def bake(mlsetup,mlmask_path,R=1024):
     b=s[0]; r=cr2w.parse(b); layers=cr2w.chunk(b,r,0)[1].get('layers',[])
     ms=garments.segs_of(mlmask_path)
     M=mlmask.load(ms) if ms else None
-    if M is None: MISSING.add(mlmask_path)
+    if M is None: MISSING.add(mlmask_path); M=FALLBACK_MASK
     nxy=np.zeros((R,R,2),np.float32); col=np.ones((R,R,3),np.float32)*0.5; rough=np.full((R,R),0.6,np.float32); metal=np.zeros((R,R),np.float32); vis=[]; info=[]
     for i,L in enumerate(layers):
         if M is not None and i>=len(M): break
@@ -71,7 +72,8 @@ def bake(mlsetup,mlmask_path,R=1024):
         o=T.get('overrides',{})
         rep=float(L.get('matTile',1.0))*float(T.get('tilingMultiplier',1.0))
         ct=tiled(tex(ref(T.get('colorTexture'))),R,rep)
-        cs=np.array(ov(o.get('colorScale'),L.get('colorScale','null'),[1,1,1]),np.float32)
+        _cn=L.get('colorScale','null'); _known={e.get('n') for e in (o.get('colorScale') or [])}
+        cs=np.array(ov(o.get('colorScale'),_cn,[1,1,1]),np.float32) if (_cn in _known or str(_cn).startswith('null')) else np.zeros(3,np.float32)   # CP: undefined key -> zero (mod 'Black' = 000000_null)
         c=(srgb2lin(ct[...,:3]) if ct is not None else np.full((R,R,3),0.5,np.float32))*cs
         LAYER_COLORS[i]=(cs.tolist(),float(m.mean()))
         if i in COLOR_OVERRIDE: c=(srgb2lin(ct[...,:3]) if ct is not None else np.full((R,R,3),0.5,np.float32)).mean(-1,keepdims=True)/0.5*np.array(COLOR_OVERRIDE[i],np.float32)

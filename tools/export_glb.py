@@ -53,6 +53,14 @@ if 'OUTFIT' in globals() and OUTFIT:
             for t in ('boots','metal'):
                 _r=PLAT.get(t+'_r'); _m=PLAT.get(t+'_m'); _sz=(_r or _m or PLAT[t+'_d']).size
                 M['plat_'+t]=G.material('plat_'+t,base=PLAT[t+'_d'].convert('RGB'),normal=glb.cp_normal(PLAT[t+'_n']) if t+'_n' in PLAT else None,mr=glb.mr_map((_r.convert('L') if _r else Image.new('L',_sz,140)),(_m.convert('L').resize(_sz) if _m else Image.new('L',_sz,255 if t=='metal' else 0))))
+        elif it=='synthpants':
+            _nx=SYN['nxy']; _nimg=Image.fromarray(np.dstack([np.clip(_nx*0.5+0.5,0,1),np.ones(_nx.shape[:2])]).astype(np.float32).__mul__(255).astype(np.uint8)[...,[0,1,2]]) if SYN['n01'] is None else SYN['n01']
+            M['syn_pants']=G.material('syn_pants',base=Image.fromarray((SYN['albedo']*255).astype(np.uint8)),normal=glb.cp_normal(_nimg),mr=glb.mr_map(Image.fromarray((SYN['rough']*255).astype(np.uint8)),Image.fromarray((SYN['metal']*255).astype(np.uint8))),ext={'cull':1})
+            M['syn_zip']=G.material('syn_zip',base=SYN['zip'],normal=glb.cp_normal(SYN['dec_n']),alpha='BLEND',rough=0.35,metal=0.9,ext={'order':1})
+            M['syn_stitch']=G.material('syn_stitch',base=SYN['stitch'],alpha='BLEND',rough=0.8,ext={'order':1})
+        elif it=='walletchain':
+            _cl=np.asarray(DEN['d01'].convert('L').resize((2048,2048))).astype(np.float32); _cl=np.clip(150+(_cl-_cl.mean())*0.5,90,215).astype(np.uint8)
+            M['chain_silver']=G.material('chain_silver',base=Image.fromarray(np.dstack([_cl,_cl,(_cl*1.02).clip(0,255).astype(np.uint8)])),normal=_dn_,rough=0.22,metal=1.0)
         else: M['den_'+it]=G.material('den_'+it,base=_dbase,normal=_dn_,mr=_dmr,emis=_de,emis_f=(1,1,1),ext={'cull':1})   # cloth has an inner shell: cull back faces
 for p in parts:
     if p['name'] not in M: continue

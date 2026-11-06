@@ -27,3 +27,13 @@ Source preset: `takemura hades edition.preset` (40 options, resolved against `ma
 | Hat | axellysse fur hat (hat_fur_m_base_body.mesh), black_carbon fur cards (hh_short01 + black_carbon.hp); inner cap material pending collect_staging2 | axellysse_fur_collection |
 | Coat (maybe) | axellysse fur jacket, black_carbon | axellysse_fur_collection |
 | Teeth / nails / lashes | defaults | base |
+
+## Update: tattoos, Synth Pants, boots
+- **Tattoo:** VTK MALVINA (all 4 layers), moved from the Female V body/arm UVs onto the male base body and arms. Each body part is mapped onto the matching male part by scaling its bounding box, then snapped to the male surface. Ink is about 90% opacity, so it reads as healed black ink.
+- **Legs:** Synth Pants, default appearance. This is the plain black item, `synth_black_basic.mlsetup`. It is still interim: the Militech mask set is missing, so only the base layer is baked. Run `collect_synth.wscript`.
+- **Feet:** Denim Edgerunner boots, `s1_pma_denimedgerunner_boots`. The yusei platform boots are hidden, not removed.
+- **Hidden:**
+  - Edgerunner pants
+  - wallet chain (the silver re-finish is ready)
+  - hoodie
+  - fur hat (`SHOW_HAT=0`)
