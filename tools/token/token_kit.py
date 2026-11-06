@@ -138,6 +138,7 @@ NORMALS={  # extra normal maps where they carry the look
  'arms':'/home/claude/work/tex/base/a0_000_ma_base__hq_nd01.png',
  'facecw_face':'/home/claude/work/tex/base/hx_cyberware_13_m02.png','facecw_nose':'/home/claude/work/tex/base/hx_cyberware_13_d02.png'}
 CAP=None
+EYE_LID_SIGN=1
 LOCK_FINGERS=True   # citizen player models don't hand their finger bones to merged models (male_05 check): fingers ride the hand bone, pre-curled
 FCURL=None
 def _finger_curl_mats(deg=32):
@@ -288,7 +289,9 @@ def main():
             a=np.asarray(im.convert('RGBA')).astype(np.float32); H,W=a.shape[:2]; yy,xx=np.mgrid[0:H,0:W]
             r=np.hypot(xx/W-0.5,yy/H-0.46); rgb=a[...,:3]; sat=(rgb.max(2)-rgb.min(2))/np.maximum(rgb.max(2),1); lum=rgb.mean(2)/255
             m=((r<0.205)*np.clip((lum-0.35)*2.5,0,1)+(r<0.32)*(r>0.205)*(sat>0.45)*(lum>0.35)*0.8)
-            a[...,:3]*=np.where(r>0.215,0.62,1.0)[...,None]   # sclera: no eye AO/lid shadow in Source, so pre-shade it
+            lid=np.clip((yy/H-0.46)/0.22*(-1)*EYE_LID_SIGN,0,1)   # 0 at the iris centre -> 1 toward the upper lid
+            shade=np.where(r>0.215,0.55,1.0)*(1-0.75*lid**0.8)
+            a[...,:3]*=shade[...,None]   # sclera + upper-lid shadow (Source has no eye AO, so the eye white read as a hole in the lid)
             a[...,3]=np.clip(m,0,1)*255; im=Image.fromarray(a.astype(np.uint8),'RGBA')
             im.save(KIT+'materialsrc/%s_%s.tga'%(NAME,nm)); open(KIT+'materialsrc/%s_%s.txt'%(NAME,nm),'w').write('nocompress 0\n')
             open(KIT+'materials/%s_%s.vmt'%(NAME,nm),'w',newline='\r\n').write('"VertexLitGeneric"\n{\n "$basetexture" "%s/%s_%s"\n%s}\n'%(MATDIR,NAME,nm,EYES)); return
