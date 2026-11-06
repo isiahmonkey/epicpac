@@ -141,6 +141,20 @@ NORMALS={  # extra normal maps where they carry the look
  'arms':'/home/claude/work/tex/base/a0_000_ma_base__hq_nd01.png',
  'facecw_face':'/home/claude/work/tex/base/hx_cyberware_13_m02.png','facecw_nose':'/home/claude/work/tex/base/hx_cyberware_13_d02.png'}
 CAP=None
+OCCLUDE={'mis_tank':['bolero_ml','bolerocuff_ml'],'mis_print':['bolero_ml'],'mis_stitch':['bolero_ml','bolerocuff_ml']}   # inner layer -> outer layers that cover it
+OUTER={}   # outer part name -> (points, normals) in bind space, filled per model
+def covered(vp,vn,outer_names,reach=1.4):
+    """vertex is hidden if an outer garment surface lies within `reach` inches on its outward side"""
+    from scipy.spatial import cKDTree
+    pts=[OUTER[o][0] for o in outer_names if o in OUTER]
+    if not pts: return np.zeros(len(vp),bool)
+    P=np.concatenate(pts); tree=cKDTree(P); hid=np.zeros(len(vp),bool)
+    for k,nb in enumerate(tree.query_ball_point(vp,reach)):
+        if nb: hid[k]=((P[nb]-vp[k])@vn[k]>-0.15).any()
+    vis=~hid
+    if vis.any() and hid.any():   # keep a margin under the jacket's edges so no gap opens at the opening
+        d,_=cKDTree(vp[vis]).query(vp[hid]); h=np.where(hid)[0]; hid[h[d<2.4]]=False
+    return hid
 METAL_MASKED={'vinyl','den_pants','bolero_ml'}   # garments with metal hardware (boot chains, buckles, zips): metal areas reflect, stay bright
 def metal_of(nm,size):
     mr=STAGED_MATS.get(nm,{}).get('mr')
@@ -368,7 +382,10 @@ def main():
                     if ((vp-hc)*vn_).sum(1).mean()<0: vn_=-vn_
                 if nm=='cyberware' and CAP is not None: vp=tuck_under_cap(vp)
                 if nm=='eyes': vp=vp+np.array([0,0.03,0])   # seat the eyeballs ~0.75 mm deeper (+y = backward in the bind skeleton) so the lids close over them
-                Fi=remap[F].copy(); a,b,c=vp[Fi[:,0]],vp[Fi[:,1]],vp[Fi[:,2]]
+                Fi=remap[F].copy()
+                if nm in OCCLUDE and any(o in OUTER for o in OCCLUDE[nm]):   # drop inner-layer faces fully under the jacket: they poke through when the citizen animations bend the torso
+                    hid=covered(vp,vn_,OCCLUDE[nm]); keep=~hid[Fi].all(1); print('   %s: %d/%d faces hidden under %s'%(nm,(~keep).sum(),len(Fi),OCCLUDE[nm])); Fi=Fi[keep]
+                a,b,c=vp[Fi[:,0]],vp[Fi[:,1]],vp[Fi[:,2]]
                 bad=(np.cross(b-a,c-a)*vn_[Fi].sum(1)).sum(1)<0; Fi[bad]=Fi[bad][:,[0,2,1]]; flip=False   # each triangle faces the way its normals point (Source culls back faces)
                 emit_mat(nm,p)
                 T+=smd.part_tris(vp,vn_,p['uv'][used],Fi.ravel(),lk,'%s_%s'%(NAME,nm),flip=flip)
@@ -388,6 +405,16 @@ def main():
     for model,groups in LAYOUT.items():
         qc=['$modelname "player/%s/%s.mdl"'%(NAME,model),'$cdmaterials "%s/"'%MATDIR,'$surfaceprop "flesh"','$model "%s_bind" "%s_bind.smd"'%(model,model)]
         allt=[]; mats=set(); groupsout={}
+        OUTER.clear()
+        allparts={x for opts in groups.values() for ps in opts.values() for x in ps}
+        for o in {x for v in OCCLUDE.values() for x in v}:
+            if o in allparts:
+                pts=[]; nrs=[]
+                for p in byname.get(o,[]):
+                    u=np.unique(p['idx']); nr=p.get('nrm'); nr=p.get('src_nrm') if nr is None else nr
+                    q,qn=RT.retarget(p['pos'][u].astype(np.float64),np.asarray(nr)[u,:3].astype(np.float64),np.asarray(p['ji'])[u],np.asarray(p['jw'])[u],p['bones'],p['bonepos'])[:2]
+                    pts.append(q)
+                if pts: OUTER[o]=(np.concatenate(pts),None)
         LOC=LOCAL_PIVOT.get(model)
         if LOC:
             Ji=UPRIGHT.T; piv=np.asarray(LOC[1])   # verts in an upright head-aligned frame (x fwd, y left, z up) at the pivot: keeps PAC's euler jiggle away from gimbal lock
