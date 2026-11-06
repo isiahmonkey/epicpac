@@ -359,6 +359,11 @@ if OUTFIT and BODY:
     DEN={k:_dx2(_DT2+k+'.xbm') for k in ('d01','m01','r01','n01','e01')}
     _pre={'hoodie':'t1','pants':'l1','chain':'i1','jacket':'t2','belt':'i1','kneepads':'i1','elbowpads':'i1','bandolier':'i1','glove':'g1','boots':'s1'}
     for it in OUTFIT:
+        if it=='furjacket':      # axellysse fur jacket, black_carbon: same fur cards + cap material as the hat
+            _fa2=modres.AR['axellysse_fur_collection']; _ff2={f['hash']:f for f in _fa2.files}
+            for _k,_s in enumerate(mesh.decode(_fa2.extract(_ff2[names.fnv('axellysse\\fur_collection\\mesh\\jacket_fur_m_base_body.mesh')]))['subs']):
+                parts.append(dict(pos=_s['pos'],idx=_s['idx'],uv=_s['uv0'],nrm=_s.get('nrm'),tex=HAT_CAP if _k==0 else HAT_CARDS,alpha=0 if _k==0 else 2,name='hatcap' if _k==0 else 'hatfur'))
+            continue
         if it=='platform':
             _yb=_rd5.Archive('/home/claude/work/new1/src/mods/yusei_short_heeled_boots.archive'); _ybf={f['hash']:f for f in _yb.files}
             _YT='base\\characters\\garment\\player_equipment\\feet\\s1_yusei_short_heeled_boots\\textures\\'
