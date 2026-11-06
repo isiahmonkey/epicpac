@@ -220,7 +220,11 @@ def metal_of(nm,size):
     return np.asarray(mr.convert('RGB').resize(size,Image.LANCZOS)).astype(np.float32)[...,2]/255
 EYE_LID_SIGN=1
 LOCK_FINGERS=True
-REFIT_HAND=False   # keep the CP artist finger weights (retarget already lands each CP finger joint on the Kleiner knuckle)   # citizen player models don't hand their finger bones to merged models (male_05 check): fingers ride the hand bone, pre-curled
+REFIT_HAND=False
+if LOCK_FINGERS:   # fingers ride the hand: keep CP's own finger shape (no per-finger fit onto Kleiner's bones = no twisted thumb)
+    for _n in list(RT.D):
+        for _sd in ('Left','Right'):
+            if _n.startswith(_sd+'Hand') and _n!=_sd+'Hand': RT.D[_n]=RT.D[_sd+'Hand'].copy()   # keep the CP artist finger weights (retarget already lands each CP finger joint on the Kleiner knuckle)   # citizen player models don't hand their finger bones to merged models (male_05 check): fingers ride the hand bone, pre-curled
 FCURL=None
 def _finger_curl_mats(deg=0):
     """world-space transforms (bind -> relaxed-curl pose) for every finger bone"""
