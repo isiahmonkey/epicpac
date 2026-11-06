@@ -42,6 +42,16 @@ if BODY:
         for _k,_v in GA_DEC.items(): M['ga_dec_'+_k]=G.material('ga_dec_'+_k,base=_v,alpha='BLEND',rough=0.5,ext={'order':1})
         M['ga_glass']=G.material('ga_glass',color=(0.02,0.02,0.025,1),rough=0.05,ext={'clearcoat':1.0})
     M['nails']=G.material('nails',color=(0.07,0.045,0.035,1),rough=0.3)
+if 'OUTFIT' in globals() and OUTFIT:
+    _dmr=glb.mr_map(DEN['r01'].convert('L').resize((2048,2048)),DEN['m01'].convert('L').resize((2048,2048)))
+    _dbase=DEN['d01'].convert('RGB').resize((2048,2048)); _dn_=glb.cp_normal(DEN['n01'].resize((2048,2048)))
+    _de=DEN['e01'].convert('RGB')
+    for it in OUTFIT:
+        if it=='platform':
+            for t in ('boots','metal'):
+                _r=PLAT.get(t+'_r'); _m=PLAT.get(t+'_m'); _sz=(_r or _m or PLAT[t+'_d']).size
+                M['plat_'+t]=G.material('plat_'+t,base=PLAT[t+'_d'].convert('RGB'),normal=glb.cp_normal(PLAT[t+'_n']) if t+'_n' in PLAT else None,mr=glb.mr_map((_r.convert('L') if _r else Image.new('L',_sz,140)),(_m.convert('L').resize(_sz) if _m else Image.new('L',_sz,255 if t=='metal' else 0))))
+        else: M['den_'+it]=G.material('den_'+it,base=_dbase,normal=_dn_,mr=_dmr,emis=_de,emis_f=(1,1,1),double=True)
 for p in parts:
     if p['name'] not in M: continue
     G.mesh(p['name'],p['pos'],p['idx'],p['uv'],M[p['name']])

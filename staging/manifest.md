@@ -19,6 +19,10 @@ Source preset: `takemura hades edition.preset` (40 options, resolved against `ma
 | Hair | Half Bun Dreads (Male V), black_carbon (overrides preset hair) | Half_Bun_DreadsMale_V |
 | Body | player_man_average base body (censored skin) + HQ arms + natural nails, graded to the head deep tone | base |
 | Arms | Gorilla Arms x2 (TPP holstered), BLACK: fingers + knuckle plating gloss black, decals darkened, red details kept; organic nails removed | base cyberware |
+| Hoodie | PinkyDude Denim Edgerunner t1 hoodie (pma base_body), shared 4k atlas (metal_base: d/m/r/n/e) | PinkyDude_Clothes_DenimEdgerunnerSet |
+| Pants | Denim Edgerunner l1 pants | PinkyDude_Clothes_DenimEdgerunnerSet |
+| Chain | Denim Edgerunner i1 thigh chain (right hip) | PinkyDude_Clothes_DenimEdgerunnerSet |
+| Shoes | yusei Platform Ankle Boots (short_heeled_boots) black, pma; body feet chunk hidden | short_heeled_boots |
 | Hat | axellysse fur hat (hat_fur_m_base_body.mesh), black_carbon fur cards (hh_short01 + black_carbon.hp); inner cap material pending collect_staging2 | axellysse_fur_collection |
 | Coat (maybe) | axellysse fur jacket, black_carbon | axellysse_fur_collection |
 | Teeth / nails / lashes | defaults | base |

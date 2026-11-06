@@ -315,7 +315,9 @@ if BODY:
     BODY_D=grade(Image.open(_TB+'t0_000_ma__c_base_d03_censored.png').convert('RGBA'),_tone)
     ARMS_D=grade(Image.open(_TB+'a0_000_ma__c_base_hq_d01.png').convert('RGBA'),_tone)
     BODY_N=Image.open(_TB+'t0_000_ma__c_base_n03_censored.png').convert('RGB'); ARMS_N=Image.open(_TB+'a0_000_ma_base__hq_nd01.png').convert('RGB')
+    _hidefeet='platform' in os.environ.get('OUTFIT','')
     for s_ in mesh.decode(cr2w.load_loose(_B+'t0_000_pma_base__full.mesh'))['subs']:
+        if _hidefeet and s_['chunk']==7: continue
         parts.append(dict(pos=s_['pos'],idx=s_['idx'],uv=s_['uv0'],tex=BODY_D,alpha=0,name='body'))
     GORILLA=os.environ.get('GORILLA','')        # '', 'black', 'silver' -> both arms Gorilla Arms (TPP holstered)
     import mats as _mats
@@ -347,6 +349,27 @@ if BODY:
         if GORILLA: continue                     # Gorilla fingers are cyber: no organic nails (they floated off the fingertips)
         for s_ in mesh.decode(cr2w.load_loose(_B+'arms_hq/nails/a0_000_pma_base__nails_%s.mesh'%side))['subs']:
             parts.append(dict(pos=s_['pos'],idx=s_['idx'],uv=s_['uv0'],tex=Image.new('RGBA',(4,4),(74,52,44,255)),alpha=0,name='nails'))
+# ---- OUTFIT: PinkyDude Denim Edgerunner (hoodie + pants + chain) + yusei platform ankle boots (black)
+OUTFIT=[x for x in os.environ.get('OUTFIT','').split(',') if x]
+if OUTFIT and BODY:
+    import rdar as _rd5
+    _dn=_rd5.Archive('/home/claude/work/new1/src/mods/PinkyDude_DenimEdgerunner.archive'); _dnf={f['hash']:f for f in _dn.files}
+    _dx2=lambda p: xbm.load(_dn.extract(_dnf[names.fnv(p.lower())]))
+    _DT2='pkd_rvcoondumpster\\denimedgerunner\\textures\\denimedgerunner_'
+    DEN={k:_dx2(_DT2+k+'.xbm') for k in ('d01','m01','r01','n01','e01')}
+    _pre={'hoodie':'t1','pants':'l1','chain':'i1','jacket':'t2','belt':'i1','kneepads':'i1','elbowpads':'i1','bandolier':'i1','glove':'g1','boots':'s1'}
+    for it in OUTFIT:
+        if it=='platform':
+            _yb=_rd5.Archive('/home/claude/work/new1/src/mods/yusei_short_heeled_boots.archive'); _ybf={f['hash']:f for f in _yb.files}
+            _YT='base\\characters\\garment\\player_equipment\\feet\\s1_yusei_short_heeled_boots\\textures\\'
+            PLAT={k:xbm.load(_yb.extract(_ybf[names.fnv((_YT+k+'.xbm').lower())])) for k in ('boots_d','boots_n','boots_m','boots_r','metal_d','metal_n','metal_m','metal_r') if names.fnv((_YT+k+'.xbm').lower()) in _ybf}
+            print('platform textures',sorted(PLAT))
+            for k_,s_ in enumerate(mesh.decode(_yb.extract(_ybf[2721687290290620523]))['subs']):
+                parts.append(dict(pos=s_['pos'],idx=s_['idx'],uv=s_['uv0'],tex=PLAT['boots_d' if k_==0 else 'metal_d'].convert('RGBA'),alpha=0,name='plat_'+('boots' if k_==0 else 'metal')))
+            continue
+        q='pkd_rvcoondumpster\\denimedgerunner\\%s_pma_denimedgerunner_%s_base_body.mesh'%(_pre[it],it)
+        for s_ in mesh.decode(_dn.extract(_dnf[names.fnv(q.lower())]))['subs']:
+            parts.append(dict(pos=s_['pos'],idx=s_['idx'],uv=s_['uv0'],tex=DEN['d01'],alpha=0,name='den_'+it))
 # Takemura neck cyberware: ml_h1_001_ma_cyberware__takemura.mlsetup baked (titanium / cast iron / enamel / red tech plastic)
 CWA=np.asarray(Image.open('/home/claude/work/staging/cw_albedo.png').convert('RGB')).astype(np.float32)
 _met=np.asarray(Image.open('/home/claude/work/staging/cw_metal.png')).astype(np.float32)[...,None]/255
