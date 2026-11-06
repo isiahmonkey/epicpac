@@ -30,7 +30,7 @@ Source preset: `takemura hades edition.preset` (40 options, resolved against `ma
 
 ## Update: tattoos, Synth Pants, boots
 - **Tattoo:** VTK MALVINA (all 4 layers), moved from the Female V body/arm UVs onto the male base body and arms. Each body part is mapped onto the matching male part by scaling its bounding box, then snapped to the male surface. Ink is about 90% opacity, so it reads as healed black ink.
-- **Legs:** Synth Pants, default appearance. This is the plain black item, `synth_black_basic.mlsetup`. It is still interim: the Militech mask set is missing, so only the base layer is baked. Run `collect_synth.wscript`.
+- **Legs:** Synth Pants, default appearance (the plain black item, `synth_black_basic`). Final: real Militech l1_078 mask set and normal map, layered with the cotton weave detail normal.
 - **Feet:** Denim Edgerunner boots, `s1_pma_denimedgerunner_boots`. The yusei platform boots are hidden, not removed.
 - **Hidden:**
   - Edgerunner pants
