@@ -241,13 +241,13 @@ def main():
             plate=(al>0.6).astype(np.float32); rim=np.where(al<=0.6,al,0)
             pl=np.dstack([np.full(al.shape,14.0),np.full(al.shape,14.0),np.full(al.shape,16.0),plate*255]).astype(np.uint8)
             Image.fromarray(pl,'RGBA').save(KIT+'materialsrc/%s_%s.tga'%(NAME,nm)); open(KIT+'materialsrc/%s_%s.txt'%(NAME,nm),'w').write('nocompress 0\n')
-            rm=np.dstack([np.full(al.shape,30.0),np.full(al.shape,19.0),np.full(al.shape,14.0),rim*255]).astype(np.uint8)
+            rm=np.dstack([np.full(al.shape,34.0),np.full(al.shape,21.0),np.full(al.shape,15.0),np.clip(rim*4,0,1)*255]).astype(np.uint8)
             Image.fromarray(rm,'RGBA').save(KIT+'materialsrc/%s_%s_rim.tga'%(NAME,nm)); open(KIT+'materialsrc/%s_%s_rim.txt'%(NAME,nm),'w').write('nocompress 0\n')
             n=nrm_rgb(NORMALS[nm]); na=np.asarray(n).astype(np.float32)/255*2-1; tilt=1-np.clip(na[...,2],0,1)
             em=np.clip(0.18+tilt*6,0,1); n=n.convert('RGBA'); n.putalpha(Image.fromarray((em*255).astype(np.uint8)))
             n.resize((1024,1024),Image.LANCZOS).save(KIT+'materialsrc/%s_%s_n.tga'%(NAME,nm)); open(KIT+'materialsrc/%s_%s_n.txt'%(NAME,nm),'w').write('nocompress 0\nnormal 1\n')
             open(KIT+'materials/%s_%s.vmt'%(NAME,nm),'w',newline='\r\n').write('"VertexLitGeneric"\n{\n "$basetexture" "%s/%s_%s"\n%s}\n'%(MATDIR,NAME,nm,PLATE.replace('{NM}',nm)))
-            open(KIT+'materials/%s_%s_rim.vmt'%(NAME,nm),'w',newline='\r\n').write('"VertexLitGeneric"\n{\n "$basetexture" "%s/%s_%s_rim"\n "$translucent" "1"\n "$halflambert" "1"\n}\n'%(MATDIR,NAME,nm))
+            open(KIT+'materials/%s_%s_rim.vmt'%(NAME,nm),'w',newline='\r\n').write('"VertexLitGeneric"\n{\n "$basetexture" "%s/%s_%s_rim"\n "$alphatest" "1"\n "$alphatestreference" "0.06"\n "$allowalphatocoverage" "1"\n "$nocull" "1"\n "$halflambert" "1"\n}\n'%(MATDIR,NAME,nm))
             return
         if nm=='eyes':
             a=np.asarray(im.convert('RGBA')).astype(np.float32); H,W=a.shape[:2]; yy,xx=np.mgrid[0:H,0:W]
