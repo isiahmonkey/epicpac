@@ -41,3 +41,4 @@ Every separate clothing / accessory piece is its own **bodygroup**: one submodel
 - Device folder `V_Gmod\gmod_build\token_build\`, `build.bat` → `build.ps1`: hash cache, so only changed textures and models rebuild, in parallel. Each model gets its own `<model>_pac3.zip`.
 - Claude ships only changed files as `token_build_patchNN.zip` (`tools/token/ship.py`), and build.bat unpacks it.
 - Position, colour and shine tweaks go in the PAC3 editor or the VMTs first, and need no compile.
+- 2026-11-06: Token is worn over **Kleiner** (user's choice). Bind skeleton = Kleiner's in-game bone dump (tools/rig/token_kleiner.txt → valve_ref.json); fingers animate (Kleiner passes finger bones to bonemerged models; male_* citizens do not).

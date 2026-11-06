@@ -49,7 +49,7 @@ LAYOUT={
  },
 }
 FLATTEN={'bolero_ml':0.15,'bolerocuff_ml':0.15}
-LEATHER=' "$phong" "1"\n "$phongexponent" "30"\n "$phongboost" "0.9"\n "$phongfresnelranges" "[0.3 0.6 1]"\n{A}'
+LEATHER=' "$phong" "1"\n "$phongexponent" "20"\n "$phongboost" "0.35"\n "$phongfresnelranges" "[0.3 0.6 1]"\n{A}'
 SILVER=' "$envmap" "env_cubemap"\n "$envmaptint" "[.45 .45 .47]"\n "$envmapcontrast" "1"\n "$envmapsaturation" "0"\n "$envmapfresnel" "0.6"\n "$phong" "1"\n "$phongexponent" "80"\n "$phongboost" "4"\n "$phongalbedotint" "1"\n "$phongfresnelranges" "[0.6 0.8 1]"\n "$rimlight" "1"\n "$rimlightexponent" "8"\n "$rimlightboost" "0.6"\n{A}'
 BLACKMETAL=' "$envmap" "environment maps/metal_generic_002"\n "$envmaptint" "[.07 .07 .075]"\n "$phong" "1"\n "$phongexponent" "35"\n "$phongboost" "2.5"\n "$phongfresnelranges" "[0.4 0.8 1]"\n "$halflambert" "1"\n{A}'
 BLACKMETAL_N=' "$bumpmap" "{D}/{M}_n"\n'+BLACKMETAL
@@ -155,13 +155,13 @@ def covered(vp,vn,outer_names,reach=1.4):
     if vis.any() and hid.any():   # keep a margin under the jacket's edges so no gap opens at the opening
         d,_=cKDTree(vp[vis]).query(vp[hid]); h=np.where(hid)[0]; hid[h[d<2.4]]=False
     return hid
-METAL_MASKED={'vinyl','den_pants','bolero_ml'}   # garments with metal hardware (boot chains, buckles, zips): metal areas reflect, stay bright
+METAL_MASKED={'vinyl','den_pants'}   # garments with metal hardware (boot chains, buckles, zips): metal areas reflect, stay bright
 def metal_of(nm,size):
     mr=STAGED_MATS.get(nm,{}).get('mr')
     if mr is None: return None
     return np.asarray(mr.convert('RGB').resize(size,Image.LANCZOS)).astype(np.float32)[...,2]/255
 EYE_LID_SIGN=1
-LOCK_FINGERS=True   # citizen player models don't hand their finger bones to merged models (male_05 check): fingers ride the hand bone, pre-curled
+LOCK_FINGERS=False   # citizen player models don't hand their finger bones to merged models (male_05 check): fingers ride the hand bone, pre-curled
 FCURL=None
 def _finger_curl_mats(deg=0):
     """world-space transforms (bind -> relaxed-curl pose) for every finger bone"""
