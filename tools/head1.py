@@ -125,7 +125,14 @@ cy=mesh.decode(A.extract(F[0x4b02f72835f99a29]))
 CWA=np.asarray(Image.open('/home/claude/work/staging/cw_albedo.png').convert('RGB')).astype(np.float32)
 _met=np.asarray(Image.open('/home/claude/work/staging/cw_metal.png')).astype(np.float32)[...,None]/255
 _rg=np.asarray(Image.open('/home/claude/work/staging/cw_rough.png')).astype(np.float32)[...,None]/255
-CWT=Image.fromarray(np.clip(CWA*(1+0.35*_met*(1-_rg)),0,255).astype(np.uint8)).convert('RGBA')   # preview: polished metal reads a touch brighter
+_n=np.asarray(Image.open('/home/claude/work/staging/cw_n01.png').convert('RGB').resize(CWA.shape[1::-1],Image.BICUBIC)).astype(np.float32)/127.5-1
+_nx,_ny=_n[...,0],_n[...,1]
+_cav=np.gradient(_nx,axis=1)+np.gradient(_ny,axis=0)                     # normal-map curvature: panel seams / bolt holes
+from PIL import ImageFilter as _IF
+_cav=np.asarray(Image.fromarray(np.clip(_cav*40+128,0,255).astype(np.uint8)).filter(_IF.GaussianBlur(1.2))).astype(np.float32)/128-1
+_emb=0.5*(_nx*-0.6+_ny*0.8)                                                # emboss: GlobalNormal lit from above
+shade=np.clip(1+_emb-0.9*np.clip(-_cav,0,1)+0.35*np.clip(_cav,0,1),0.35,1.6)[...,None]
+CWT=Image.fromarray(np.clip(CWA*(1+0.35*_met*(1-_rg))*shade,0,255).astype(np.uint8)).convert('RGBA')   # preview: polished metal reads a touch brighter
 for s in cy['subs']: parts.append(dict(pos=s['pos'],idx=s['idx'],uv=s['uv0'],tex=CWT,alpha=0))
 print('cyber bbox',cy['subs'][0]['pos'].min(0).round(3),cy['subs'][0]['pos'].max(0).round(3))
 parts.sort(key=lambda p:p.get('alpha',0)==2)
