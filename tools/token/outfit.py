@@ -8,7 +8,7 @@ OUT='/mnt/user-data/outputs/token_build/'
 OUTFITS={
  'outfit1':dict(desc='Misfits tank, black leather bolero, Edgerunner denim pants, vinyl platforms, wallet chain',
    staged='/home/claude/work/token/staged_outfit1.pkl',
-   hide_skin=['pelvis','thighs','calves','feet'],      # base skin regions covered by this outfit
+   hide_skin=['torso','pelvis','thighs','calves','feet'],      # base skin regions covered by this outfit
    pieces={'torso_inner':'misfits_tank','torso_outer':'bolero_black','legs':'denim_pants','feet':'vinyl_platform_black',
            'legs_acc':'wallet_chain_silver'}),
 }
