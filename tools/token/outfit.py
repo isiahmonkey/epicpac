@@ -32,7 +32,10 @@ os.makedirs(OUT+'plans',exist_ok=True)
 entry=dict(model=M,materials=plan[M]['materials'],bodygroups=plan[M]['bodygroups'],tris=plan[M]['tris'])
 if oid=='earring':
     import numpy as np
-    b,piv=K.LOCAL_PIVOT['token_earring']; Wb=K.RT.NW[K.RT.vn.index(b)]; entry['pivot_local']=[round(float(x),3) for x in Wb[:3,:3].T@(np.asarray(piv)-Wb[:3,3])]
+    b,piv=K.LOCAL_PIVOT['token_earring']; Wb=K.RT.NW[K.RT.vn.index(b)]; Hb=Wb[:3,:3]
+    entry['pivot_local']=[round(float(x),3) for x in Hb.T@(np.asarray(piv)-Wb[:3,3])]
+    R=Hb.T@K.UPRIGHT; pitch=np.degrees(np.arcsin(-R[2,0])); yaw=np.degrees(np.arctan2(R[1,0],R[0,0])); roll=np.degrees(np.arctan2(R[2,1],R[2,2]))
+    entry['angles_local']=[round(float(pitch),2),round(float(yaw),2),round(float(roll),2)]
 if oid in ('base','hat','earring'):
     json.dump(entry,open(OUT+'plans/_%s.json'%oid,'w'),indent=1)
 else:

@@ -6,7 +6,7 @@ import glb
 CAP={}
 _orig=glb.GLB.material
 def material(self,name,**k):
-    CAP[name]={x:k.get(x) for x in ('normal','mr','rough','metal','nscale')}
+    CAP[name]={x:k.get(x) for x in ('base','normal','mr','rough','metal','nscale','emissive','alpha')}
     return _orig(self,name,**k)
 glb.GLB.material=material; glb.GLB.save=lambda *a,**k:None
 os.environ.setdefault('MORPH','2'); os.environ.setdefault('TONE','deep')

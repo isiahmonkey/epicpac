@@ -8,8 +8,10 @@ plan=json.load(open(B+'plans/%s.json'%oid)); ER=json.load(open(B+'plans/_earring
 uid=lambda s: hashlib.sha1(('token/'+oid+'/'+s).encode()).hexdigest()
 model=lambda m: (url+'/%s_pac3.zip'%m) if url else 'models/player/token/%s.mdl'%m
 class Vec(tuple): pass
+class Ang(tuple): pass
 def lua(v,t=1):
     if isinstance(v,Vec): return 'Vector(%s)'%(', '.join('%g'%x for x in v))
+    if isinstance(v,Ang): return 'Angle(%s)'%(', '.join('%g'%x for x in v))
     if isinstance(v,bool): return 'true' if v else 'false'
     if isinstance(v,(int,float)): return repr(v)
     if isinstance(v,str): return '"%s"'%v.replace('\\','\\\\').replace('"','\\"')
@@ -23,7 +25,7 @@ root=part('group','Token - %s'%oid,dict(OwnerName='self'),[
   part('entity2','hide player',dict(NoDraw=True,DrawShadow=True)),
   part('model2','token_base',dict(Model=model('token_base'),BoneMerge=True,ModelModifiers=hide)),
   part('model2','token_'+oid,dict(Model=model('token_'+oid),BoneMerge=True)),
-  part('jiggle','earring swing',dict(Bone='head',Position=Vec(ER['pivot_local']),JigglePosition=False,JiggleAngle=True,Speed=1.2,Strain=0.55,ResetOnHide=True),[
+  part('jiggle','earring swing',dict(Bone='head',Position=Vec(ER['pivot_local']),Angles=Ang(ER['angles_local']),JigglePosition=False,JiggleAngle=True,Speed=1.2,Strain=0.55,ResetOnHide=True),[
     part('model2','token_earring',dict(Model=model('token_earring'),BoneMerge=False))]),
   part('model2','token_hat',dict(Model=model('token_hat'),BoneMerge=True),[
     part('event','hide_hat (pac_event hide_hat 2)',dict(Event='command',Operator='equal',Arguments='hide_hat@@0@@0',Invert=False))]),

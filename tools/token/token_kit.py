@@ -47,7 +47,7 @@ LAYOUT={
 }
 FLATTEN={'bolero_ml':0.15,'bolerocuff_ml':0.15}
 LEATHER=' "$phong" "1"\n "$phongexponent" "28"\n "$phongboost" "1.6"\n "$phongfresnelranges" "[0.3 0.6 1]"\n{A}'
-SILVER=' "$envmap" "environment maps/metal_generic_002"\n "$envmaptint" "[1 1 1.03]"\n "$envmapcontrast" "1"\n "$phong" "1"\n "$phongexponent" "70"\n "$phongboost" "6"\n "$phongalbedotint" "1"\n "$phongfresnelranges" "[1 1 1]"\n "$halflambert" "1"\n{A}'
+SILVER=' "$envmap" "environment maps/metal_generic_002"\n "$envmaptint" "[1.6 1.6 1.65]"\n "$envmapcontrast" "1"\n "$envmapsaturation" "0"\n "$phong" "1"\n "$phongexponent" "150"\n "$phongboost" "9"\n "$phongalbedotint" "1"\n "$phongfresnelranges" "[1 1 1]"\n "$halflambert" "1"\n{A}'
 BLACKMETAL=' "$envmap" "environment maps/metal_generic_002"\n "$envmaptint" "[.07 .07 .075]"\n "$phong" "1"\n "$phongexponent" "35"\n "$phongboost" "2.5"\n "$phongfresnelranges" "[0.4 0.8 1]"\n "$halflambert" "1"\n{A}'
 BLACKMETAL_N=' "$bumpmap" "{D}/{M}_n"\n'+BLACKMETAL
 CARDS_DARK=' "$alphatest" "1"\n "$alphatestreference" "0.4"\n "$allowalphatocoverage" "1"\n "$nocull" "1"\n "$phong" "1"\n "$phongexponent" "10"\n "$phongboost" "0.12"\n'
@@ -58,7 +58,7 @@ VMT_OVERRIDE={'cyberware':BLACKMETAL,'ga_cyber':BLACKMETAL,'ga_fingers':BLACKMET
  'facecw_face':BLACKMETAL_N,'facecw_nose':BLACKMETAL_N,'eyes':EYES,
  'hair':HAIR,'hatfur':HAIR,'brows':' "$bumpmap" "{D}/{M}_n"\n'+CARDS_DARK.replace('"0.12"','"0.05"'),'brows_s7':CARDS_DARK,'brows_s14':CARDS_DARK,'lashes':CARDS_DARK,
  'haircap':HAIR.replace('"0.4"','"0.12"'),'bolero_ml':LEATHER,'bolerocuff_ml':LEATHER,'chain_silver':SILVER,'earring':SILVER,'nd_acc':SILVER,'vchain':SILVER,'vcross':SILVER}
-DARKEN={'bolero_ml':0.55,'bolerocuff_ml':0.55,'mis_tank':0.7,'den_pants':0.7,'vinyl':0.7,'hair':0.3,'hatfur':0.32,'haircap':0.3,'brows':0.6,'brows_s7':0.6,'brows_s14':0.6,'chain_silver':0.7,'earring':0.85,'nd_acc':0.55,'vchain':0.55,'vcross':0.55}   # polished metal: dark diffuse, the shine comes from the cubemap
+DARKEN={'bolero_ml':0.55,'bolerocuff_ml':0.55,'mis_tank':0.7,'den_pants':0.7,'vinyl':0.7,'hair':0.3,'hatfur':0.32,'haircap':0.3,'brows':0.6,'brows_s7':0.6,'brows_s14':0.6,'chain_silver':0.28,'earring':0.3,'nd_acc':0.28,'vchain':0.28,'vcross':0.28}   # polished metal: dark diffuse, the shine comes from the cubemap
 BODY_MODEL='token_body'; KEEP=False; KITZIP='token_kit.zip'; PACZIP='token_pac3.zip'; BATNAME='compile_token.bat'
 DEFAULT_ON={'head','arms','neck_cyberware','head_hair','face_cyberware','face_piercings','face_decal','ear_left','ear_right'}   # groups without a 'blank' at index 0
 
@@ -126,6 +126,7 @@ VMTX={
  'decal':' "$alphatest" "1"\n "$alphatestreference" "0.45"\n "$allowalphatocoverage" "1"\n "$halflambert" "1"\n',
  'cloth':' "$phong" "1"\n "$phongexponent" "12"\n "$phongboost" "1.2"\n "$phongfresnelranges" "[0.4 0.7 1]"\n{A}',
 }
+VMT_OVERRIDE['skin']=VMTX['skin_head']+' "$nocull" "1"\n'   # face/lids drawn from both sides: no holes where CP's lid normals face inward
 TEXCAP={'bolero_ml':2048,'bolerocuff_ml':2048,'den_pants':2048,'vinyl':2048,'den_hoodie':2048,'syn_pants':2048,'skin':2048,'jeans':2048,'mis_tank':2048,'body':2048,'arms':2048,'hair':1024,'coatfur':1024,'jacketfur':1024,'cyberware':2048,'ga_cyber':2048}
 def to_tga(im,nm):
     cap=TEXCAP.get(nm,1024); w,h=im.size; s=min(1.0,cap/max(w,h))
@@ -137,6 +138,8 @@ NORMALS={  # extra normal maps where they carry the look
  'arms':'/home/claude/work/tex/base/a0_000_ma_base__hq_nd01.png',
  'facecw_face':'/home/claude/work/tex/base/hx_cyberware_13_m02.png','facecw_nose':'/home/claude/work/tex/base/hx_cyberware_13_d02.png'}
 CAP=None
+BASE_FROM_STAGING={'ga_cyber','ga_end','ga_fingers','chain_silver','vcross'}
+UPRIGHT=np.array([[0,1.0,0],[-1.0,0,0],[0,0,1.0]])   # columns: forward (0,-1,0), left (1,0,0), up (0,0,1) in the bind skeleton's world
 LOCAL_PIVOT={}   # model -> (bone, pivot world): PAC-attached props (not bonemerged); verts stored in that bone's local frame, origin at the pivot
 VN=list(RT.vn); VP=list(RT.vp); NLX=list(RT.NL); JIGGLE={}   # extra procedural bones (jigglebones) appended after the Valve skeleton
 def add_jiggle_bone(name,parent,pivot,length):
@@ -177,6 +180,7 @@ def main():
         if nm in texdone: return
         texdone.add(nm); c=cls(nm); tex=p.get('tex')
         im=tex if tex is not None else Image.new('RGBA',(8,8),(128,128,128,255))
+        if nm in BASE_FROM_STAGING and STAGED_MATS.get(nm,{}).get('base') is not None: im=STAGED_MATS[nm]['base']   # the staging material's own colour (the part's raw tex is the arm skin for Gorilla plates)
         im=to_tga(im.convert('RGBA'),nm)
         _p2=lambda v:1<<max(2,round(np.log2(v)))
         if im.size!=(_p2(im.size[0]),_p2(im.size[1])): im=im.resize((_p2(im.size[0]),_p2(im.size[1])),Image.LANCZOS)
@@ -275,8 +279,8 @@ def main():
         allt=[]; mats=set(); groupsout={}
         LOC=LOCAL_PIVOT.get(model)
         if LOC:
-            Wb=RT.NW[RT.vn.index(LOC[0])]; Ri=Wb[:3,:3].T; pl=Ri@(np.asarray(LOC[1])-Wb[:3,3])
-            def localize(T): return [(m,[(Ri@(np.asarray(pp)-Wb[:3,3])-pl, Ri@np.asarray(nn), uv,[(0,1.0)]) for (pp,nn,uv,lk) in vs]) for m,vs in T]
+            Ji=UPRIGHT.T; piv=np.asarray(LOC[1])   # verts in an upright head-aligned frame (x fwd, y left, z up) at the pivot: keeps PAC's euler jiggle away from gimbal lock
+            def localize(T): return [(m,[(Ji@(np.asarray(pp)-piv), Ji@np.asarray(nn), uv,[(0,1.0)]) for (pp,nn,uv,lk) in vs]) for m,vs in T]
             SK=(['root'],[-1],[np.eye(4)])
         else: localize=lambda T:T; SK=(VN,VP,NLX)
         smd.write(KIT+'modelsrc/%s_bind.smd'%model,*SK,[])
