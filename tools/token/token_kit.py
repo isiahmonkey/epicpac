@@ -21,7 +21,10 @@ BODY_REGIONS={'torso':[0,2],'collar':[1],'pelvis':[3],'thighs':[4],'calves':[5,6
 LAYOUT={
  'token_body':{
    'head':{'head':['skin','lashes','eyeshadow','eyes','brows','brows_s7','brows_s14']},
-   'arms':{'gorilla_black':['arms','ga_fingers','ga_glass','ga_end','ga_cyber','ga_dec_decal_holstered_forearm_01','ga_dec_decal_tapes2','ga_dec_decal_hand_top','ga_dec_decal_cyberware_text','ga_dec_decal_under_cyberware','ga_dec_decal_holes','ga_dec_decal_betewwn_fingers']},
+   'arms':{'gorilla_black':['arms','ga_dec_decal_holstered_forearm_01','ga_dec_decal_tapes2','ga_dec_decal_hand_top','ga_dec_decal_cyberware_text','ga_dec_decal_under_cyberware','ga_dec_decal_holes','ga_dec_decal_betewwn_fingers']},
+   'arms_cyber':{'gorilla_black':['ga_fingers','ga_glass','ga_end']},
+   'arms_plates_l':{'gorilla_black':['ga_cyber@L']},
+   'arms_plates_r':{'gorilla_black':['ga_cyber@R']},   # own submodel: full-res Gorilla plates exceed one submodel's 65k verts with the arm skin
    'neck_cyberware':{'takemura_black_red':['cyberware']},
    'head_hair':{'keelan_locs':['hair','haircap']},
    'hat':{'fur_hat':['hatcap','hatfur']},
@@ -63,7 +66,7 @@ BODY_MODEL='token_body'; KEEP=False; KITZIP='token_kit.zip'; PACZIP='token_pac3.
 DEFAULT_ON={'head','arms','neck_cyberware','head_hair','face_cyberware','face_piercings','face_decal','ear_left','ear_right'}   # groups without a 'blank' at index 0
 
 # ---------------- budget: Gmod-friendly triangle counts ----------------
-DECIMATE={'ga_cyber':0.24,'jeans':0.28,'cyberware':0.40,'jacketcap':0.35,'coatcap':0.35,'bolero_ml':0.6,'den_boots':0.45,'syn_pants':0.7,'den_hoodie':0.8,'den_pants':0.8,'mis_tank':0.8,'maine':0.35,'earcyber':0.7,'ga_fingers':0.6}
+DECIMATE={'jeans':0.28,'cyberware':0.40,'jacketcap':0.35,'coatcap':0.35,'bolero_ml':0.6,'den_boots':0.45,'syn_pants':0.7,'den_hoodie':0.8,'den_pants':0.8,'mis_tank':0.8,'maine':0.35,'earcyber':0.7,}
 CARDS={'hatfur':1.0,'jacketfur':0.45,'coatfur':0.38,'jacketfrizz':0.3,'coatfrizz':0.3,'hair':1.0}
 NOLOCK={'cyberware','maine','ga_cyber'}   # hard-surface / decal: open edges are panel borders, not UV seams that matter   # keep this fraction of whole hair/fur cards
 def boundary_lock(F,n):
@@ -141,7 +144,7 @@ CAP=None
 EYE_LID_SIGN=1
 LOCK_FINGERS=True   # citizen player models don't hand their finger bones to merged models (male_05 check): fingers ride the hand bone, pre-curled
 FCURL=None
-def _finger_curl_mats(deg=32):
+def _finger_curl_mats(deg=0):
     """world-space transforms (bind -> relaxed-curl pose) for every finger bone"""
     def axrot(a,ang):
         a=a/np.linalg.norm(a); K=np.array([[0,-a[2],a[1]],[a[2],0,-a[0]],[-a[1],a[0],0]]); return np.eye(3)+np.sin(ang)*K+(1-np.cos(ang))*K@K
@@ -321,9 +324,13 @@ def main():
     def tris_of(names,chunks=None):
         T=[]
         for nm in names:
+            side=None
+            if '@' in nm: nm,side=nm.split('@')   # 'part@L' / 'part@R': one side only (keeps a submodel under 65k verts)
             for p in byname.get(nm,[]):
                 if chunks is not None and p.get('chunk') not in chunks: continue
-                F=reduce(p); report[nm]=report.get(nm,0)+len(F)
+                F=reduce(p)
+                if side: cx=p['pos'][F].mean(1)[:,0]; F=F[(cx>0) if side=='L' else (cx<=0)]
+                report[nm]=report.get(nm,0)+len(F)
                 pos=p['pos'].astype(np.float64); nrm=p.get('nrm'); nrm=p.get('src_nrm') if nrm is None else nrm
                 if nrm is None:
                     nrm=np.zeros_like(pos); fn=np.cross(pos[F[:,1]]-pos[F[:,0]],pos[F[:,2]]-pos[F[:,0]])
