@@ -141,6 +141,49 @@ NORMALS={  # extra normal maps where they carry the look
  'arms':'/home/claude/work/tex/base/a0_000_ma_base__hq_nd01.png',
  'facecw_face':'/home/claude/work/tex/base/hx_cyberware_13_m02.png','facecw_nose':'/home/claude/work/tex/base/hx_cyberware_13_d02.png'}
 CAP=None
+def rigid_pieces(Fi,lk):
+    """each separate armour piece (connected component) gets ONE weight set = its average: plates move as solid
+    metal instead of stretching across a knuckle (CP drove them with muscle helpers Source doesn't have)"""
+    from scipy.sparse import coo_matrix; from scipy.sparse.csgraph import connected_components
+    import collections
+    n=len(lk); g=coo_matrix((np.ones(len(Fi)*3),(np.r_[Fi[:,0],Fi[:,1],Fi[:,2]],np.r_[Fi[:,1],Fi[:,2],Fi[:,0]])),shape=(n,n))
+    _,lab=connected_components(g,directed=False); acc=collections.defaultdict(collections.Counter)
+    for v,l in enumerate(lab):
+        for b,w in lk[v]: acc[l][b]+=w
+    comp={}
+    for l,c in acc.items():
+        top=c.most_common(2); t=sum(w for _,w in top); comp[l]=[(b,w/t) for b,w in top]
+    return [comp[l] for l in lab]
+def smooth_hand_links(Fi,lk,iters=10):
+    """Laplacian-smooth bone weights where a vertex blends the hand with a finger root or two finger roots
+    (thumb web, ring/pinky web): Kleiner's idle swings the thumb 31 deg and the pinky 45 deg, and CP's sharp
+    weight borders there tore the skin. Smoothing spreads each joint's bend over the surrounding web."""
+    import collections
+    roots={RT.vn.index('ValveBiped.Bip01_%s_%s'%(sd,b)) for sd in 'LR' for b in ('Hand','Finger0','Finger1','Finger2','Finger3','Finger4')}
+    n=len(lk); W=[dict(l) for l in lk]
+    act=np.array([len(set(w)&roots)>=2 or (len(w)>=2 and set(w)<=roots) for w in W])
+    if not act.any(): return lk
+    nb=[set() for _ in range(n)]
+    for a,b,c in Fi: nb[a]|={b,c}; nb[b]|={a,c}; nb[c]|={a,b}
+    # grow the active region by 2 rings so the blend has room
+    for _ in range(2):
+        g=act.copy()
+        for v in np.where(act)[0]: g[list(nb[v])]=True
+        act=g
+    act&=np.array([set(w)<=roots|{RT.vn.index('ValveBiped.Bip01_L_Forearm'),RT.vn.index('ValveBiped.Bip01_R_Forearm')} for w in W])
+    idx=np.where(act)[0]
+    for _ in range(iters):
+        new={}
+        for v in idx:
+            acc=collections.Counter(W[v]); 
+            for u in nb[v]:
+                for b,w in W[u].items(): acc[b]+=w
+            tot=sum(acc.values()); new[v]={b:w/tot for b,w in acc.items()}
+        for v,w in new.items(): W[v]=w
+    out=[]
+    for w in W:
+        top=sorted(w.items(),key=lambda x:-x[1])[:3]; t=sum(x for _,x in top); out.append([(b,x/t) for b,x in top])
+    return out
 HAND_UV_MASK=None
 def _grade(im,rgb=(66,42,30)):
     a=np.asarray(im).astype(np.float32)/255; lin=a[...,:3]**2.2; tgt=(np.array(rgb,np.float32)/255)**2.2
@@ -176,7 +219,7 @@ def metal_of(nm,size):
     if mr is None: return None
     return np.asarray(mr.convert('RGB').resize(size,Image.LANCZOS)).astype(np.float32)[...,2]/255
 EYE_LID_SIGN=1
-LOCK_FINGERS=False
+LOCK_FINGERS=True
 REFIT_HAND=False   # keep the CP artist finger weights (retarget already lands each CP finger joint on the Kleiner knuckle)   # citizen player models don't hand their finger bones to merged models (male_05 check): fingers ride the hand bone, pre-curled
 FCURL=None
 def _finger_curl_mats(deg=0):
@@ -395,6 +438,7 @@ def main():
                 else: vp,vn_,lk=RT.retarget(pos[used],nrm[used],np.asarray(p['ji'])[used],np.asarray(p['jw'])[used],p['bones'],p['bonepos'])
                 if nm in ('arms',) or nm.startswith('ga_'):
                     if REFIT_HAND: lk=refit_hand(vp,lk)
+                    lk=lk if LOCK_FINGERS else smooth_hand_links(remap[F],lk)
                     if LOCK_FINGERS: vp,vn_,lk=lock_fingers(vp,vn_,lk)
                 if LOCK_FINGERS and nm not in ('arms',) and not nm.startswith('ga_'):   # any other piece touching a finger (cuffs, sleeves) rides the hand too
                     fids={i for i,n in enumerate(RT.vn) if 'Finger' in n}; hL=RT.vn.index('ValveBiped.Bip01_L_Hand'); hR=RT.vn.index('ValveBiped.Bip01_R_Hand')
