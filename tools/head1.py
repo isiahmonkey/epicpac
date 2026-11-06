@@ -53,13 +53,31 @@ EYE=xbm.load(_ea.extract(_ef[names.fnv('base\\eyes\\textures\\eye_14_diffuse.xbm
 EM,ep=basemorph('he_000_pma__morphs.morphtarget',W)
 for i,s in enumerate(EM['geo']['subs']):
     if i==1: continue
-    if i==0: parts.append(dict(pos=ep[i],idx=s['idx'],uv=s['uv0'],color=(25,22,22)))
+    if i==0:
+        _l=Image.open('/home/claude/work/tex/base/eyelashes_ma_01_lod1.png'); _L=np.asarray(_l.convert('L')).astype(float); _al=np.asarray(_l)[...,3].astype(float) if _l.mode=='RGBA' else np.clip(_L/max(_L.max(),1)*1.15,0,1)*255
+        LASH=Image.fromarray(np.dstack([np.full(_L.shape,14),np.full(_L.shape,12),np.full(_L.shape,12),_al]).astype(np.uint8),'RGBA')
+        parts.append(dict(pos=ep[i],idx=s['idx'],uv=s['uv0'],tex=LASH,alpha=2))
     else: parts.append(dict(pos=ep[i],idx=s['idx'],uv=s['uv0'],tex=EYE,alpha=0))
 BM,bp=basemorph('heb_000_pma__morphs.morphtarget',W)
 bw=np.asarray(xbm.load(cr2w.load_loose('/mnt/user-data/uploads/characters/common/character_customisation_items/eyebrows/textures/heb__base_d08.xbm')).convert('RGBA')).astype(float)
 g=bw[...,:3].mean(-1,keepdims=True)/255                      # hair strand shading, black_carbon tint
-bt=Image.fromarray(np.dstack([g*np.array([34,31,30]),np.clip((bw[...,3]/255)**0.6*1.3,0,1)*255]).astype(np.uint8),'RGBA')   # preview only: thin strands survive downsampling
-for i,s in enumerate(BM['geo']['subs']): parts.append(dict(pos=bp[i],idx=s['idx'],uv=s['uv0'],tex=bt,alpha=2))
+# brow = soft density underlay (SecondaryDiffuseAlpha, ds08) + individual strands (d08 alpha), black_carbon
+_ds=np.asarray(xbm.load(cr2w.load_loose('/mnt/user-data/uploads/characters/common/character_customisation_items/eyebrows/textures/heb_wa__base_ds08.xbm')).convert('RGBA').resize(bw.shape[1::-1],Image.BICUBIC)).astype(float)[...,3]/255
+_sa=bw[...,3]/255; _a=np.clip(1-(1-_ds*0.75)*(1-_sa),0,1)
+_col=np.array([22,19,18.0])*(1-_sa[...,None])+g*np.array([34,31,30])*_sa[...,None]
+bt=Image.fromarray(np.dstack([_col,_a*255]).astype(np.uint8),'RGBA')
+def vnormals(p,idx):
+    t=idx.reshape(-1,3); n=np.cross(p[t[:,1]]-p[t[:,0]],p[t[:,2]]-p[t[:,0]]); vn=np.zeros_like(p)
+    for k in range(3): np.add.at(vn,t[:,k],n)
+    return -vn/np.maximum(np.linalg.norm(vn,axis=1,keepdims=True),1e-9)   # CP winding is clockwise: flip to outward
+def float_on(p,hpos,hidx,gap=0.0008):
+    # decals (brows) were authored for the vanilla head: lift any vertex that sinks into the re-sculpted Hades head
+    hn=vnormals(hpos,hidx); d,i=cKDTree(hpos).query(p,k=6); w=1/(d+1e-6); w/=w.sum(1,keepdims=True)
+    sp=(hpos[i]*w[...,None]).sum(1); sn=(hn[i]*w[...,None]).sum(1); sn/=np.linalg.norm(sn,axis=1,keepdims=True)
+    h=((p-sp)*sn).sum(1); lift=np.clip(gap-h,0,None); return p+sn*lift[:,None],lift
+for i,s in enumerate(BM['geo']['subs']):
+    q,l=float_on(bp[i],hp[0],HM['geo']['subs'][0]['idx']); print('brow chunk',i,'verts lifted',int((l>0).sum()),'/',len(l),'max %.1f mm'%(l.max()*1000))
+    parts.append(dict(pos=q,idx=s['idx'],uv=s['uv0'],tex=bt,alpha=2))
 cy=mesh.decode(A.extract(F[0x4b02f72835f99a29]))
 for s in cy['subs']: parts.append(dict(pos=s['pos'],idx=s['idx'],uv=s['uv0'],color=(70,70,78)))
 print('cyber bbox',cy['subs'][0]['pos'].min(0).round(3),cy['subs'][0]['pos'].max(0).round(3))
