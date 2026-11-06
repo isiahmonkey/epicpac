@@ -87,5 +87,8 @@ foreach ($p in Get-ChildItem (Join-Path $KIT 'plans') -Filter *.json) {
   Compress-Archive -Path (Join-Path $d '*') -DestinationPath $zip
   Write-Host ("  {0}  {1:N1} MB" -f (Split-Path $zip -Leaf), ((Get-Item $zip).Length / 1MB))
 }
+$po = Join-Path $KIT 'pac3_outfits'
+if (Test-Path $po) { $dp = Join-Path $GAME 'data\pac3'; New-Item -ItemType Directory -Force $dp | Out-Null
+  Get-ChildItem $po -Filter *.txt | ForEach-Object { Copy-Item $_.FullName $dp -Force; Write-Host "  PAC3 outfit installed: $($_.BaseName)" } }
 Stop-Transcript | Out-Null
 Write-Host ("Done in {0:N0} s - tell Claude when finished." -f $sw.Elapsed.TotalSeconds) -ForegroundColor Green

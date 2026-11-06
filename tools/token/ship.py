@@ -3,7 +3,7 @@ import os,hashlib,json,zipfile,sys
 B='/mnt/user-data/outputs/token_build/'; MAN='/home/claude/work/token/shipped_manifest.json'
 old=json.load(open(MAN)) if os.path.exists(MAN) and '--full' not in sys.argv else {}
 new={}; changed=[]
-for d in ('modelsrc','materialsrc','materials','plans'):
+for d in ('modelsrc','materialsrc','materials','plans','pac3_outfits'):
     for f in sorted(os.listdir(B+d)):
         rel=d+'/'+f; h=hashlib.md5(open(B+rel,'rb').read()).hexdigest(); new[rel]=h
         if old.get(rel)!=h: changed.append(rel)
