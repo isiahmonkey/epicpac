@@ -15,8 +15,9 @@ EYE_E2=Image.fromarray(np.clip(_e*0.30+_x,0,255).astype(np.uint8))   # eyes catc
 M={'skin':G.material('skin',base=skin.convert('RGB'),color=(0.85,0.85,0.85,1),normal=skin_n,nscale=0.8,rough=0.62,ext={'skin':1.0}),
    'eyes':G.material('eyes',base=EYE.convert('RGB'),color=(1.0,1.0,1.0,1),emis=EYE_EMIT.convert('RGB'),emis_f=(1.4,1.4,1.4),rough=0.45,ext={'clearcoat':0.3,'shmin':0.8,'selflit':0.05}),
    'eyeshadow':G.material('eyeshadow',base=SHADOW,alpha='BLEND',rough=1.0,ext={'order':0}),
-   'lashes':G.material('lashes',base=LASH,alpha='MASK',cutoff=0.25,rough=1.0,double=True),
+   'lashes':G.material('lashes',base=LASH,alpha='MASK',cutoff=0.25,rough=1.0,double=True,ext={'nospec':1}),
    'brows':G.material('brows',base=bt,alpha='BLEND',rough=1.0,double=True,ext={'order':1}),
+   'earcyber':G.material('earcyber',base=EAR_D,normal=glb.cp_normal(EAR_N),mr=glb.mr_map(EAR_R.resize((1024,1024)),EAR_M.resize((1024,1024))),alpha='MASK',cutoff=0.5),
    'cyberware':G.material('cyberware',base=cw_base,normal=cw_n,mr=cw_mr)}
 for p in parts: G.mesh(p['name'],p['pos'],p['idx'],p['uv'],M[p['name']])
 print('glb bytes',G.save(sys.argv[1] if len(sys.argv)>1 else S+'stage_head.glb'))

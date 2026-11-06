@@ -121,6 +121,29 @@ for _p in parts:
     if _p.get('tex') is LASH:
         _p['pos'],_l=float_on(_p['pos'],hp[0],HM['geo']['subs'][0]['idx'],gap=0.0003); print('lash verts lifted',int((_l>0).sum()),'/',len(_l),'max %.1f mm'%(_l.max()*1000))
 cy=mesh.decode(A.extract(F[0x4b02f72835f99a29]))
+# ---- ANRUI ear cyberware (Base_07..10 are identical; colour/metal/rough/normal come from the customization archives)
+def warp_from_vanilla(pts,k=8):
+    """carry geometry authored on the vanilla (preset-morphed) head onto the re-sculpted Hades head"""
+    global _VW
+    if '_VW' not in globals():
+        V=morph.load(U+'h0_000_pma__morphs.morphtarget'); vb=morph.apply(V,W)[0]
+        _, j=cKDTree(hp[0]).query(vb); disp=hp[0][j]-vb
+        dd,ii=cKDTree(vb).query(vb,k=12); ww=1/(dd+1e-4); ww/=ww.sum(1,keepdims=True); disp=(disp[ii]*ww[...,None]).sum(1)   # smooth
+        _VW=(cKDTree(vb),disp)
+    T,disp=_VW; d,i=T.query(pts,k=k); w=1/(d+1e-4); w/=w.sum(1,keepdims=True); return pts+(disp[i]*w[...,None]).sum(1)
+import rdar as _rd
+EAR_COLOR=os.environ.get('EAR','Black')
+_AN='/mnt/user-data/uploads/V_Gmod/New Mods/ANRUI_EarCyberware_Customization/'
+def _anx(sub,idx=0):
+    a=_rd.Archive(_AN+sub); fs=[f for f in a.files if a.extract(f)]; return xbm.load(a.extract(fs[idx]))
+EAR_D=_anx('Colors/ANRUI_EarCyberware_Color_%s.archive'%EAR_COLOR).convert('RGBA')
+EAR_N=_anx('Normals/ANRUI_EarCyberware_Normals_OG.archive',0).convert('RGB')
+EAR_M=_anx('Metalness/ANRUI_EarCyberware_Metalness_Full.archive').convert('L'); EAR_R=_anx('Roughness/ANRUI_EarCyberware_Roughness_Half.archive').convert('L')
+_ea7=modres.AR['ANRUI_MEarCyberware_Base_07']; _ec=[f for f in _ea7.files if cr2w.parse(_ea7.extract(f)[0])['chunks'][0][0]=='CMesh'][0]
+EARG=mesh.decode(_ea7.extract(_ec))
+for s in EARG['subs']:
+    q=warp_from_vanilla(s['pos']); q,_l=float_on(q,hp[0],HM['geo']['subs'][0]['idx'],gap=0.0004)
+    parts.append(dict(pos=q,idx=s['idx'],uv=s['uv0'],tex=EAR_D,alpha=2,name='earcyber'))
 # Takemura neck cyberware: ml_h1_001_ma_cyberware__takemura.mlsetup baked (titanium / cast iron / enamel / red tech plastic)
 CWA=np.asarray(Image.open('/home/claude/work/staging/cw_albedo.png').convert('RGB')).astype(np.float32)
 _met=np.asarray(Image.open('/home/claude/work/staging/cw_metal.png')).astype(np.float32)[...,None]/255
