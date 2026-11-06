@@ -1,5 +1,5 @@
 import sys,json,numpy as np; sys.path.insert(0,'/home/claude/tools/scripts'); sys.path.insert(0,'/home/claude/work/build')
-import modres,cr2w,mesh,morph,render,xbm
+import os,modres,cr2w,mesh,morph,render,xbm
 from PIL import Image
 def morph_segs(segs):
     b=segs[0]; r=cr2w.parse(b); _,d=cr2w.chunk(b,r,0)
@@ -12,8 +12,24 @@ W={'h141':1,'h102':1,'h143':1,'h034':1}
 U='/mnt/user-data/uploads/characters/head/player_base_heads/player_man_average/'
 def xpng(p): return xbm.load(cr2w.load_loose(p)).convert("RGBA")
 skin=xpng(U+'h0_000_pma_c__basehead/textures/h0_000_pma_c__basehead_d01.xbm')
+GRADE={'05_bl_espresso':(92,60,44),'06_bl_dark':(58,38,28)}
+TONES={'01_ca_pale':((171,155,150),0.0),'05_bl_espresso':((117,98,96),0.8),'06_bl_dark':((63,51,39),0.845)}
+TONE=os.environ.get('TONE','05_bl_espresso')
+def tint_skin(im,tone):
+    # skin.mt: albedo multiplied by TintColor, weighted by TintScale x TintColorMask (done in linear space)
+    c,k=TONES[tone]; a=np.asarray(im).astype(np.float32)/255; lin=a[...,:3]**2.2
+    m=np.asarray(xbm.load(cr2w.load_loose('/mnt/user-data/uploads/characters/common/skin/face/h0_000_base__tintcolormask.xbm')).convert('L').resize(im.size)).astype(np.float32)/255
+    t=(np.array(c,np.float32)/255)**2.2; w=(k*m)[...,None]
+    out=lin*(1-w)+lin*t*w
+    return Image.fromarray(np.dstack([np.clip(out**(1/2.2),0,1)*255,a[...,3:]*255]).astype(np.uint8),'RGBA')
+def grade(im,rgb):
+    # match the mean skin colour to the target tone in linear space, keeping all pore/shading detail
+    a=np.asarray(im).astype(np.float32)/255; lin=a[...,:3]**2.2
+    cur=lin.reshape(-1,3).mean(0); tgt=(np.array(rgb,np.float32)/255)**2.2
+    out=np.clip(lin*(tgt/cur),0,1)**(1/2.2)
+    return Image.fromarray(np.dstack([out*255,a[...,3:]*255]).astype(np.uint8),'RGBA')
+skin=grade(skin,GRADE[TONE]) if TONE in GRADE else skin
 parts=[]
-import os
 from scipy.spatial import cKDTree
 def transfer(HMm,w):
     # the Hades head is re-sculpted/re-ordered but keeps vanilla-indexed morph diffs: carry the vanilla deltas over by nearest vertex
@@ -36,12 +52,13 @@ for i,s in enumerate(EM['geo']['subs']):
     if i==1: continue
     parts.append(dict(pos=ep[i],idx=s['idx'],uv=s['uv0'],color=(25,22,22) if i==0 else (200,40,40)))
 BM,bp=basemorph('heb_000_pma__morphs.morphtarget',W)
-brow=np.asarray(xbm.load(cr2w.load_loose('/mnt/user-data/uploads/characters/common/character_customisation_items/eyebrows/textures/heb__base_d08.xbm')).convert("L")).astype(float)
-bt=Image.fromarray(np.dstack([np.full(brow.shape,20),np.full(brow.shape,18),np.full(brow.shape,18),np.clip(brow/brow.max()*1.1,0,1)*255]).astype(np.uint8),'RGBA')
+bw=np.asarray(xbm.load(cr2w.load_loose('/mnt/user-data/uploads/characters/common/character_customisation_items/eyebrows/textures/heb__base_d08.xbm')).convert('RGBA')).astype(float)
+g=bw[...,:3].mean(-1,keepdims=True)/255                      # hair strand shading, black_carbon tint
+bt=Image.fromarray(np.dstack([g*np.array([34,31,30]),np.clip((bw[...,3]/255)**0.6*1.3,0,1)*255]).astype(np.uint8),'RGBA')   # preview only: thin strands survive downsampling
 for i,s in enumerate(BM['geo']['subs']): parts.append(dict(pos=bp[i],idx=s['idx'],uv=s['uv0'],tex=bt,alpha=2))
 cy=mesh.decode(A.extract(F[0x4b02f72835f99a29]))
 for s in cy['subs']: parts.append(dict(pos=s['pos'],idx=s['idx'],uv=s['uv0'],color=(70,70,78)))
 print('cyber bbox',cy['subs'][0]['pos'].min(0).round(3),cy['subs'][0]['pos'].max(0).round(3))
 parts.sort(key=lambda p:p.get('alpha',0)==2)
 lo=np.array([-0.13,-0.2,1.45]); hi=np.array([0.13,0.15,1.86])
-render.sheet([render.view(parts,yaw=y,size=(440,520),focus=(lo,hi)) for y in (0,-0.7,-1.5708)],'/home/claude/work/staging/head1_m%s.png'%os.environ.get('MORPH','1'))
+render.sheet([render.view(parts,yaw=y,size=(440,520),focus=(lo,hi)) for y in (0,-0.7,-1.5708)],'/home/claude/work/staging/head1_%s.png'%TONE)
