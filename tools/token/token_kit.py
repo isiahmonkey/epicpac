@@ -46,7 +46,7 @@ LAYOUT={
  },
 }
 FLATTEN={'bolero_ml':0.15,'bolerocuff_ml':0.15}
-LEATHER=' "$phong" "1"\n "$phongexponent" "28"\n "$phongboost" "1.6"\n "$phongfresnelranges" "[0.3 0.6 1]"\n{A}'
+LEATHER=' "$phong" "1"\n "$phongexponent" "30"\n "$phongboost" "0.9"\n "$phongfresnelranges" "[0.3 0.6 1]"\n{A}'
 SILVER=' "$envmap" "environment maps/metal_generic_002"\n "$envmaptint" "[1.6 1.6 1.65]"\n "$envmapcontrast" "1"\n "$envmapsaturation" "0"\n "$phong" "1"\n "$phongexponent" "150"\n "$phongboost" "9"\n "$phongalbedotint" "1"\n "$phongfresnelranges" "[1 1 1]"\n "$halflambert" "1"\n{A}'
 BLACKMETAL=' "$envmap" "environment maps/metal_generic_002"\n "$envmaptint" "[.07 .07 .075]"\n "$phong" "1"\n "$phongexponent" "35"\n "$phongboost" "2.5"\n "$phongfresnelranges" "[0.4 0.8 1]"\n "$halflambert" "1"\n{A}'
 BLACKMETAL_N=' "$bumpmap" "{D}/{M}_n"\n'+BLACKMETAL
@@ -58,7 +58,7 @@ VMT_OVERRIDE={'cyberware':BLACKMETAL,'ga_cyber':BLACKMETAL,'ga_fingers':BLACKMET
  'facecw_face':BLACKMETAL_N,'facecw_nose':BLACKMETAL_N,'eyes':EYES,
  'hair':HAIR,'hatfur':HAIR,'brows':' "$bumpmap" "{D}/{M}_n"\n'+CARDS_DARK.replace('"0.12"','"0.05"'),'brows_s7':CARDS_DARK,'brows_s14':CARDS_DARK,'lashes':CARDS_DARK,
  'haircap':HAIR.replace('"0.4"','"0.12"'),'bolero_ml':LEATHER,'bolerocuff_ml':LEATHER,'chain_silver':SILVER,'earring':SILVER,'nd_acc':SILVER,'vchain':SILVER,'vcross':SILVER}
-DARKEN={'bolero_ml':0.55,'bolerocuff_ml':0.55,'mis_tank':0.7,'den_pants':0.7,'vinyl':0.7,'hair':0.3,'hatfur':0.32,'haircap':0.3,'brows':0.6,'brows_s7':0.6,'brows_s14':0.6,'chain_silver':0.28,'earring':0.3,'nd_acc':0.28,'vchain':0.28,'vcross':0.28}   # polished metal: dark diffuse, the shine comes from the cubemap
+DARKEN={'bolero_ml':0.38,'bolerocuff_ml':0.38,'mis_tank':0.7,'den_pants':0.7,'vinyl':0.7,'hair':0.3,'hatfur':0.32,'haircap':0.3,'brows':0.6,'brows_s7':0.6,'brows_s14':0.6,'chain_silver':0.28,'earring':0.3,'nd_acc':0.28,'vchain':0.28,'vcross':0.28}   # polished metal: dark diffuse, the shine comes from the cubemap
 BODY_MODEL='token_body'; KEEP=False; KITZIP='token_kit.zip'; PACZIP='token_pac3.zip'; BATNAME='compile_token.bat'
 DEFAULT_ON={'head','arms','neck_cyberware','head_hair','face_cyberware','face_piercings','face_decal','ear_left','ear_right'}   # groups without a 'blank' at index 0
 
@@ -138,13 +138,56 @@ NORMALS={  # extra normal maps where they carry the look
  'arms':'/home/claude/work/tex/base/a0_000_ma_base__hq_nd01.png',
  'facecw_face':'/home/claude/work/tex/base/hx_cyberware_13_m02.png','facecw_nose':'/home/claude/work/tex/base/hx_cyberware_13_d02.png'}
 CAP=None
+def _hand_segments(side):
+    nw=lambda n: RT.NW[RT.vn.index('ValveBiped.Bip01_%s_%s'%(side,n))][:3,3]
+    segs=[]
+    for f in range(5):
+        ch=['Finger%d'%f,'Finger%d1'%f,'Finger%d2'%f]; P=[nw(c) for c in ch]
+        tip=P[2]+(P[2]-P[1])*0.9; ends=[P[1],P[2],tip]
+        for k,(c,a,b) in enumerate(zip(ch,P,ends)): segs.append((RT.vn.index('ValveBiped.Bip01_%s_%s'%(side,c)),a,b,k==0))
+    h=nw('Hand'); segs.append((RT.vn.index('ValveBiped.Bip01_%s_Hand'%side),h,nw('Finger2'),False))
+    return segs
+HANDSEG=None
+def refit_hand(vp,lk):
+    """Keep which finger each vertex belongs to (from CP's own weights), but re-split it along the Valve finger's three
+    segments so it bends exactly at the citizen's knuckles; palm stays on the hand bone."""
+    global HANDSEG
+    if HANDSEG is None: HANDSEG={sd:_hand_segments(sd) for sd in ('L','R')}
+    fid={}
+    for sd,segs in HANDSEG.items():
+        for k,(b,a,c,base) in enumerate(segs[:15]): fid[b]=(sd,k//3)
+    out=[]
+    for v,links in zip(vp,lk):
+        fw={}
+        for b,w in links:
+            if b in fid: fw[fid[b]]=fw.get(fid[b],0)+w
+        if not fw: out.append(links); continue
+        key,wf=max(fw.items(),key=lambda x:x[1])
+        if wf<0.5: out.append(links); continue
+        sd,f=key; segs=HANDSEG[sd][3*f:3*f+3]; d=[]
+        for b,a,c,base in segs:
+            ab=c-a; L2=max(np.dot(ab,ab),1e-9); tr=np.dot(v-a,ab)/L2; t=np.clip(tr,0,1); d.append((np.linalg.norm(v-(a+t*ab)),b,tr))
+        # position along the finger decides the segment; blend across each joint over ~0.25 in
+        b0,b1,b2=[x[1] for x in d]; L0=np.linalg.norm(segs[0][2]-segs[0][1]); L1=np.linalg.norm(segs[1][2]-segs[1][1])
+        s_=d[0][2]*L0                       # distance along finger from knuckle
+        hand=[(b,w) for b,w in links if b not in fid]
+        bw=0.25
+        def blend(x,lo,hi):                 # weight of 'hi' side around joint at x=0
+            return float(np.clip(0.5+x/(2*bw),0,1))
+        if s_<0.0:   wk=blend(s_,None,None); nl=[(b0,wk)]+[(b,w*(1-wk)/max(sum(w for _,w in hand),1e-6)) for b,w in hand] if hand else [(b0,1.0)]
+        elif s_<L0:  w1=blend(s_-L0,None,None); nl=[(b0,1-w1),(b1,w1)]
+        else:
+            s2=s_-L0; w2=blend(s2-L1,None,None); nl=[(b1,1-w2),(b2,w2)]
+        nl=[(b,w) for b,w in nl if w>1e-3]; tot=sum(w for _,w in nl); nl=[(b,w/tot) for b,w in nl]
+        out.append(nl)
+    return out
 BASE_FROM_STAGING={'ga_cyber','ga_end','ga_fingers','chain_silver','vcross'}
 UPRIGHT=np.array([[0,1.0,0],[-1.0,0,0],[0,0,1.0]])   # columns: forward (0,-1,0), left (1,0,0), up (0,0,1) in the bind skeleton's world
 LOCAL_PIVOT={}   # model -> (bone, pivot world): PAC-attached props (not bonemerged); verts stored in that bone's local frame, origin at the pivot
 VN=list(RT.vn); VP=list(RT.vp); NLX=list(RT.NL); JIGGLE={}   # extra procedural bones (jigglebones) appended after the Valve skeleton
 def add_jiggle_bone(name,parent,pivot,length):
-    W=RT.NW[RT.vn.index(parent)]; x=np.array([0,0,-1.0]); y=np.array([1.0,0,0]); z=np.cross(x,y)
-    E=np.eye(4); E[:3,0]=x; E[:3,1]=y; E[:3,2]=z; E[:3,3]=pivot
+    W=RT.NW[RT.vn.index(parent)]
+    E=W.copy(); E[:3,3]=pivot   # same orientation as the head bone: rest pose is exactly the head's, whatever its axes are in game
     VN.append(name); VP.append(RT.vn.index(parent)); NLX.append(np.linalg.inv(W)@E); JIGGLE[name]=length
     return len(VN)-1
 STAGED_MATS=pickle.load(open('/home/claude/work/token/staged_mats.pkl','rb')) if os.path.exists('/home/claude/work/token/staged_mats.pkl') else {}
@@ -172,7 +215,7 @@ def main():
     if 'earring' in byname and 'token_earring' not in VN:
         p=byname['earring'][0]; q=head_skin(p['pos'].astype(np.float64),np.tile([0,0,1.0],(len(p['pos']),1)))[0]
         q=q[np.unique(p['idx'])]; top=q[q[:,2]>=np.percentile(q[:,2],97)].mean(0); L=float(top[2]-q[:,2].min())
-        LOCAL_PIVOT['token_earring']=('ValveBiped.Bip01_Head1',top); add_jiggle_bone('token_earring','ValveBiped.Bip01_Head1',top,L); print('   earring jigglebone pivot',top.round(2),'length %.2f in'%L)
+        add_jiggle_bone('token_earring','ValveBiped.Bip01_Head1',top,L); print('   earring jigglebone pivot',top.round(2),'length %.2f in'%L)
     if 'haircap' in byname:
         CAP=np.concatenate([head_skin(p['pos'].astype(np.float64),np.tile([0,0,1.0],(len(p['pos']),1)))[0] for p in byname['haircap']])
     NL=RT.NL
@@ -251,6 +294,7 @@ def main():
                 used=np.unique(F); remap=-np.ones(len(pos),int); remap[used]=np.arange(len(used))
                 if nm in HEADLIKE or nm=='earring': vp,vn_,lk=head_skin(pos[used],nrm[used])   # earring: one rigid move with the head (no per-vertex bone mixing)
                 else: vp,vn_,lk=RT.retarget(pos[used],nrm[used],np.asarray(p['ji'])[used],np.asarray(p['jw'])[used],p['bones'],p['bonepos'])
+                if nm in ('arms',) or nm.startswith('ga_'): lk=refit_hand(vp,lk)
                 if nm in RIGID: lk=[[(RT.vn.index(RIGID[nm]),1.0)]]*len(vp)      # jewelry moves as one piece
                 if nm in RIGID_EXTRA and RIGID_EXTRA[nm] in VN: lk=[[(VN.index(RIGID_EXTRA[nm]),1.0)]]*len(vp)   # dangles from its jigglebone
                 if nm in HEADLIKE and cls(nm)!='cards':   # some CP head-family meshes carry inward normals: make them face out of the skull
@@ -302,8 +346,8 @@ def main():
         if model==BODY_MODEL:
             smd.write(KIT+'modelsrc/%s_phys.smd'%model,VN,VP,NLX,phys_tris([t for t in allt if t[0].endswith(('_body','_skin','_arms'))]))
         for jb,L in JIGGLE.items():
-            if any(jb in str(t) for t in []) or ('earring' in str([g for g in groups]) or any('earring' in str(o) for o in groups.values())):
-                qc.append('$jigglebone "%s"\n{\n is_flexible\n {\n  length %.2f\n  tip_mass 0\n  pitch_stiffness 60\n  pitch_damping 5\n  yaw_stiffness 60\n  yaw_damping 5\n  along_stiffness 100\n  along_damping 0\n  angle_constraint 35\n }\n}'%(jb,max(L,0.5)))
+            if any('earring' in str(o) for o in groups.values()):
+                qc.append('$jigglebone "%s"\n{\n is_flexible\n {\n  length %.2f\n  tip_mass 0\n  pitch_stiffness 40\n  pitch_damping 3\n  yaw_stiffness 40\n  yaw_damping 3\n  angle_constraint 40\n }\n}'%(jb,max(L,0.5)))
         qc.append('$sequence "idle" "%s_bind.smd" fps 1'%model)
         open(KIT+'modelsrc/%s.qc'%model,'w',newline='\r\n').write('\n'.join(qc)+'\n')
         plan[model]=dict(bodygroups=groupsout,materials=sorted(mats),tris=len(allt))
