@@ -21,7 +21,8 @@ def build(files,out):
                 import re; t=K+'materialsrc/%s.tga'%re.sub(r'_L\d+$','',m); im=Image.open(t).convert('RGBA') if os.path.exists(t) else None
                 vm=open(K+'materials/%s.vmt'%m).read() if os.path.exists(K+'materials/%s.vmt'%m) else ''
                 a='BLEND' if '$translucent' in vm else ('MASK' if '$alphatest' in vm else 'OPAQUE')
-                M[m]=G.material(m,base=im,alpha=a,cutoff=0.45,double='$nocull' in vm,rough=0.3 if 'envmap' in vm else 0.7,metal=0.8 if 'envmap' in vm else 0)
+                nt=K+'materialsrc/%s_n.tga'%re.sub(r'_L\d+$','',m); nim=Image.open(nt).convert('RGB') if ('$bumpmap' in vm and os.path.exists(nt)) else None
+                M[m]=G.material(m,base=im,normal=nim,alpha=a,cutoff=0.45,double='$nocull' in vm,rough=0.3 if 'envmap' in vm else 0.7,metal=0.8 if 'envmap' in vm else 0)
             idx=np.arange(len(P))
             G.mesh(m,P,idx,U,M[m],normals=N)
     G.save(out)

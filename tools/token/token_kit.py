@@ -53,11 +53,12 @@ BLACKMETAL_N=' "$bumpmap" "{D}/{M}_n"\n'+BLACKMETAL
 CARDS_DARK=' "$alphatest" "1"\n "$alphatestreference" "0.4"\n "$allowalphatocoverage" "1"\n "$nocull" "1"\n "$phong" "1"\n "$phongexponent" "10"\n "$phongboost" "0.12"\n'
 EYES=' "$selfillum" "1"\n "$selfillumtint" "[2.2 2.2 2.2]"\n "$phong" "1"\n "$phongexponent" "60"\n "$phongboost" "1"\n'
 HAIR=' "$bumpmap" "{D}/{M}_n"\n "$alphatest" "1"\n "$alphatestreference" "0.4"\n "$allowalphatocoverage" "1"\n "$nocull" "1"\n'
+PLATE=' "$bumpmap" "{D}/{M}_n"\n "$normalmapalphaenvmapmask" "1"\n "$envmap" "env_cubemap"\n "$envmaptint" "[1.1 1.1 1.15]"\n "$envmapcontrast" "1"\n "$phong" "1"\n "$phongexponent" "60"\n "$phongboost" "5"\n "$phongfresnelranges" "[0.5 0.8 1]"\n "$alphatest" "1"\n "$alphatestreference" "0.5"\n'.replace('{D}',MATDIR).replace('{M}','token_{NM}')
 VMT_OVERRIDE={'cyberware':BLACKMETAL,'ga_cyber':BLACKMETAL,'ga_fingers':BLACKMETAL,'ga_end':BLACKMETAL,'earcyber':BLACKMETAL,'piercing':BLACKMETAL,
  'facecw_face':BLACKMETAL_N,'facecw_nose':BLACKMETAL_N,'eyes':EYES,
  'hair':HAIR,'hatfur':HAIR,'brows':CARDS_DARK,'brows_s7':CARDS_DARK,'brows_s14':CARDS_DARK,'lashes':CARDS_DARK,
- 'haircap':CARDS_DARK.replace('"0.4"','"0.12"'),'bolero_ml':LEATHER,'bolerocuff_ml':LEATHER,'chain_silver':SILVER,'earring':SILVER,'nd_acc':SILVER,'vchain':SILVER,'vcross':SILVER}
-DARKEN={'hair':0.55,'hatfur':0.5,'haircap':0.6,'brows':0.6,'brows_s7':0.6,'brows_s14':0.6,'chain_silver':0.38,'earring':0.38,'nd_acc':0.38,'vchain':0.38,'vcross':0.38}   # polished metal: dark diffuse, the shine comes from the cubemap
+ 'haircap':HAIR.replace('"0.4"','"0.12"'),'bolero_ml':LEATHER,'bolerocuff_ml':LEATHER,'chain_silver':SILVER,'earring':SILVER,'nd_acc':SILVER,'vchain':SILVER,'vcross':SILVER}
+DARKEN={'hair':0.42,'hatfur':0.45,'haircap':0.45,'brows':0.6,'brows_s7':0.6,'brows_s14':0.6,'chain_silver':0.38,'earring':0.38,'nd_acc':0.38,'vchain':0.38,'vcross':0.38}   # polished metal: dark diffuse, the shine comes from the cubemap
 BODY_MODEL='token_body'; KEEP=False; KITZIP='token_kit.zip'; PACZIP='token_pac3.zip'; BATNAME='compile_token.bat'
 DEFAULT_ON={'head','arms','neck_cyberware','head_hair','face_cyberware','face_piercings','face_decal','ear_left','ear_right'}   # groups without a 'blank' at index 0
 
@@ -133,7 +134,7 @@ NORMALS={  # extra normal maps where they carry the look
  'arms':'/home/claude/work/tex/base/a0_000_ma_base__hq_nd01.png',
  'facecw_face':'/home/claude/work/tex/base/hx_cyberware_13_m02.png','facecw_nose':'/home/claude/work/tex/base/hx_cyberware_13_d02.png'}
 CAP=None
-DERIVED_NORMAL={'hair':6.0,'hatfur':4.0}
+DERIVED_NORMAL={'hair':12.0,'hatfur':6.0,'haircap':8.0}
 # name -> [(offset mm, alphatest ref or None = same material)]
 SHELLS={'facecw_face':[(0.4*k,None) for k in range(1,7)],'facecw_nose':[(0.4*k,None) for k in range(1,7)],
         'brows':[(0.3,0.36),(0.6,0.44),(0.9,0.52),(1.2,0.6),(1.5,0.68)]}
@@ -167,6 +168,19 @@ def main():
             a[...,:3]=base+(a[...,:3]-base)*FLATTEN[nm]; im=Image.fromarray(np.clip(a,0,255).astype(np.uint8),im.mode)
         if nm in DARKEN:
             a=np.asarray(im).astype(np.float32); a[...,:3]*=DARKEN[nm]; im=Image.fromarray(np.clip(a,0,255).astype(np.uint8),im.mode)
+        if nm in ('facecw_face','facecw_nose'):   # Emmerich plates: crisp metal plate (alphatest) + chrome bevels from the normal map + soft incision rim (translucent)
+            a=np.asarray(im.convert('RGBA')).astype(np.float32); al=a[...,3]/255
+            plate=(al>0.6).astype(np.float32); rim=np.where(al<=0.6,al,0)
+            pl=np.dstack([np.full(al.shape,14.0),np.full(al.shape,14.0),np.full(al.shape,16.0),plate*255]).astype(np.uint8)
+            Image.fromarray(pl,'RGBA').save(KIT+'materialsrc/%s_%s.tga'%(NAME,nm)); open(KIT+'materialsrc/%s_%s.txt'%(NAME,nm),'w').write('nocompress 0\n')
+            rm=np.dstack([np.full(al.shape,30.0),np.full(al.shape,19.0),np.full(al.shape,14.0),rim*255]).astype(np.uint8)
+            Image.fromarray(rm,'RGBA').save(KIT+'materialsrc/%s_%s_rim.tga'%(NAME,nm)); open(KIT+'materialsrc/%s_%s_rim.txt'%(NAME,nm),'w').write('nocompress 0\n')
+            n=nrm_rgb(NORMALS[nm]); na=np.asarray(n).astype(np.float32)/255*2-1; tilt=1-np.clip(na[...,2],0,1)
+            em=np.clip(0.18+tilt*6,0,1); n=n.convert('RGBA'); n.putalpha(Image.fromarray((em*255).astype(np.uint8)))
+            n.resize((1024,1024),Image.LANCZOS).save(KIT+'materialsrc/%s_%s_n.tga'%(NAME,nm)); open(KIT+'materialsrc/%s_%s_n.txt'%(NAME,nm),'w').write('nocompress 0\nnormal 1\n')
+            open(KIT+'materials/%s_%s.vmt'%(NAME,nm),'w',newline='\r\n').write('"VertexLitGeneric"\n{\n "$basetexture" "%s/%s_%s"\n%s}\n'%(MATDIR,NAME,nm,PLATE.replace('{NM}',nm)))
+            open(KIT+'materials/%s_%s_rim.vmt'%(NAME,nm),'w',newline='\r\n').write('"VertexLitGeneric"\n{\n "$basetexture" "%s/%s_%s_rim"\n "$translucent" "1"\n "$halflambert" "1"\n}\n'%(MATDIR,NAME,nm))
+            return
         if nm=='eyes':
             a=np.asarray(im.convert('RGBA')).astype(np.float32); H,W=a.shape[:2]; yy,xx=np.mgrid[0:H,0:W]
             r=np.hypot(xx/W-0.5,yy/H-0.46); rgb=a[...,:3]; sat=(rgb.max(2)-rgb.min(2))/np.maximum(rgb.max(2),1); lum=rgb.mean(2)/255
@@ -211,6 +225,9 @@ def main():
                 bad=(np.cross(b-a,c-a)*vn_[Fi].sum(1)).sum(1)<0; Fi[bad]=Fi[bad][:,[0,2,1]]; flip=False   # each triangle faces the way its normals point (Source culls back faces)
                 emit_mat(nm,p)
                 T+=smd.part_tris(vp,vn_,p['uv'][used],Fi.ravel(),lk,'%s_%s'%(NAME,nm),flip=flip)
+                if nm in ('facecw_face','facecw_nose'):
+                    hc0=RT.NW[RT.vn.index('ValveBiped.Bip01_Head1')][:3,3]+np.array([1.5,0,3.5]); u0=vp-hc0; u0/=np.linalg.norm(u0,axis=1,keepdims=True)
+                    T+=smd.part_tris(vp+u0*0.08/25.4,vn_,p['uv'][used],Fi.ravel(),lk,'%s_%s_rim'%(NAME,nm),flip=flip)
                 if nm in SHELLS:   # stacked offset shells: real thickness for flat plates / brow hair (fur-shell technique)
                     hc=RT.NW[RT.vn.index('ValveBiped.Bip01_Head1')][:3,3]+np.array([1.5,0,3.5])
                     up=vp-hc; up/=np.linalg.norm(up,axis=1,keepdims=True)
