@@ -29,3 +29,5 @@ Every separate clothing / accessory piece is its own **bodygroup**: one submodel
 - The outfit sets will be split into **separate PAC files**, one per set. The user will define the sets during PAC setup.
 - Multiple GitHub repos are fine, for example one repo per PAC or set. Shared assets (body, head, textures) live once and are referenced.
 - Friend-supplied mod files are never hosted publicly (standing rule).
+- 2026-11-06 decision: unused outfit options move into their **own outfit PACs**. Each outfit PAC ships only the items that set wears, which keeps each download small.
+- Animations (e.g. the drinking animation with props B4/G1) are **duplicated into every outfit repo** that uses them, so each repo is self-contained.
