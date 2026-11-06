@@ -16,7 +16,9 @@ oid=sys.argv[1]
 allopts={g:o for m in K.LAYOUT.values() for g,o in m.items()}
 K.KIT=OUT; K.KEEP=True; K.BATNAME=None
 if oid=='base':      # the fur hat is its own model so PAC can toggle it from the event wheel
-    M='token_base'; K.LAYOUT={M:{g:o for g,o in K.LAYOUT['token_body'].items() if g!='hat'}}; K.BODY_MODEL=M
+    M='token_base'; K.LAYOUT={M:{g:o for g,o in K.LAYOUT['token_body'].items() if g not in ('hat','ear_left')}}; K.BODY_MODEL=M
+elif oid=='earring':   # cross earring as a PAC-attached prop under a jiggle part (swings when the head moves)
+    M='token_earring'; K.LAYOUT={M:{'earring':{'cross_earring':['earring']}}}; K.BODY_MODEL=None
 elif oid=='hat':
     M='token_hat'; K.LAYOUT={M:{'hat':K.LAYOUT['token_body']['hat']}}; K.BODY_MODEL=None
 else:
@@ -28,7 +30,10 @@ K.DEFAULT_ON=set(K.LAYOUT[M])
 plan=K.main()
 os.makedirs(OUT+'plans',exist_ok=True)
 entry=dict(model=M,materials=plan[M]['materials'],bodygroups=plan[M]['bodygroups'],tris=plan[M]['tris'])
-if oid in ('base','hat'):
+if oid=='earring':
+    import numpy as np
+    b,piv=K.LOCAL_PIVOT['token_earring']; Wb=K.RT.NW[K.RT.vn.index(b)]; entry['pivot_local']=[round(float(x),3) for x in Wb[:3,:3].T@(np.asarray(piv)-Wb[:3,3])]
+if oid in ('base','hat','earring'):
     json.dump(entry,open(OUT+'plans/_%s.json'%oid,'w'),indent=1)
 else:
     entry.update(desc=O['desc'],hide_skin=O['hide_skin'])

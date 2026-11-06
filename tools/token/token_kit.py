@@ -95,7 +95,9 @@ def head_skin(pos,nrm):
     z=P[:,2]; zh=RT.NW[RT.vn.index('ValveBiped.Bip01_Head1')][2,3]; zn=RT.NW[RT.vn.index('ValveBiped.Bip01_Neck1')][2,3]
     iH=RT.vn.index('ValveBiped.Bip01_Head1'); iN=RT.vn.index('ValveBiped.Bip01_Neck1'); iS=RT.vn.index('ValveBiped.Bip01_Spine4')
     sm=lambda x: x*x*(3-2*x)
-    wh=sm(np.clip((z-(zh-1.5))/3.0,0,1)); wn_=sm(np.clip((z-(zn-2.5))/3.0,0,1))
+    # head vs neck split along the jaw line (tilted: chin bottom in front, skull base behind), so the whole face incl. jaw/chin turns with Head1
+    zcut=62.0+P[:,1]*(3.0/7.0)
+    wh=sm(np.clip((z-zcut+0.6)/1.2,0,1)); wn_=sm(np.clip((z-(zn-2.5))/3.0,0,1))
     lk=[]
     for a,b in zip(wh,wn_):
         h=a; n=(1-a)*b; c=(1-a)*(1-b); L=[(i,w) for i,w in ((iH,h),(iN,n),(iS,c)) if w>0.01]; t=sum(w for _,w in L); lk.append([(i,w/t) for i,w in L])
@@ -135,6 +137,7 @@ NORMALS={  # extra normal maps where they carry the look
  'arms':'/home/claude/work/tex/base/a0_000_ma_base__hq_nd01.png',
  'facecw_face':'/home/claude/work/tex/base/hx_cyberware_13_m02.png','facecw_nose':'/home/claude/work/tex/base/hx_cyberware_13_d02.png'}
 CAP=None
+LOCAL_PIVOT={}   # model -> (bone, pivot world): PAC-attached props (not bonemerged); verts stored in that bone's local frame, origin at the pivot
 VN=list(RT.vn); VP=list(RT.vp); NLX=list(RT.NL); JIGGLE={}   # extra procedural bones (jigglebones) appended after the Valve skeleton
 def add_jiggle_bone(name,parent,pivot,length):
     W=RT.NW[RT.vn.index(parent)]; x=np.array([0,0,-1.0]); y=np.array([1.0,0,0]); z=np.cross(x,y)
@@ -162,10 +165,11 @@ def main():
     texdone=set(); report={}; plan={}
     NDONE=set(); texdone_n=lambda nm: nm in NDONE
     global CAP
+    if 'earring' in byname: LOCAL_PIVOT.setdefault('token_earring',None)
     if 'earring' in byname and 'token_earring' not in VN:
         p=byname['earring'][0]; q=head_skin(p['pos'].astype(np.float64),np.tile([0,0,1.0],(len(p['pos']),1)))[0]
         q=q[np.unique(p['idx'])]; top=q[q[:,2]>=np.percentile(q[:,2],97)].mean(0); L=float(top[2]-q[:,2].min())
-        add_jiggle_bone('token_earring','ValveBiped.Bip01_Head1',top,L); print('   earring jigglebone pivot',top.round(2),'length %.2f in'%L)
+        LOCAL_PIVOT['token_earring']=('ValveBiped.Bip01_Head1',top); add_jiggle_bone('token_earring','ValveBiped.Bip01_Head1',top,L); print('   earring jigglebone pivot',top.round(2),'length %.2f in'%L)
     if 'haircap' in byname:
         CAP=np.concatenate([head_skin(p['pos'].astype(np.float64),np.tile([0,0,1.0],(len(p['pos']),1)))[0] for p in byname['haircap']])
     NL=RT.NL
@@ -269,7 +273,13 @@ def main():
     for model,groups in LAYOUT.items():
         qc=['$modelname "player/%s/%s.mdl"'%(NAME,model),'$cdmaterials "%s/"'%MATDIR,'$surfaceprop "flesh"','$model "%s_bind" "%s_bind.smd"'%(model,model)]
         allt=[]; mats=set(); groupsout={}
-        smd.write(KIT+'modelsrc/%s_bind.smd'%model,VN,VP,NLX,[])
+        LOC=LOCAL_PIVOT.get(model)
+        if LOC:
+            Wb=RT.NW[RT.vn.index(LOC[0])]; Ri=Wb[:3,:3].T; pl=Ri@(np.asarray(LOC[1])-Wb[:3,3])
+            def localize(T): return [(m,[(Ri@(np.asarray(pp)-Wb[:3,3])-pl, Ri@np.asarray(nn), uv,[(0,1.0)]) for (pp,nn,uv,lk) in vs]) for m,vs in T]
+            SK=(['root'],[-1],[np.eye(4)])
+        else: localize=lambda T:T; SK=(VN,VP,NLX)
+        smd.write(KIT+'modelsrc/%s_bind.smd'%model,*SK,[])
         if model==BODY_MODEL:   # body skin regions: each its own toggle (hide skin under clothes)
             for r,ch in BODY_REGIONS.items():
                 T=tris_of(['body'],chunks=ch); fn='%s_skin_%s.smd'%(model,r); smd.write(KIT+'modelsrc/'+fn,VN,VP,NLX,T); allt+=T; mats.update(m for m,_ in T)
@@ -279,7 +289,7 @@ def main():
             if g not in DEFAULT_ON: lines.append(' blank'); names.append('none')
             for o,parts in opts.items():
                 T=tris_of(parts); allt+=T
-                fn='%s_%s_%s.smd'%(model,g,o); smd.write(KIT+'modelsrc/'+fn,VN,VP,NLX,T)
+                T=localize(T); fn='%s_%s_%s.smd'%(model,g,o); smd.write(KIT+'modelsrc/'+fn,*SK,T)
                 lines.append(' studio "%s"'%fn); names.append(o)
                 for m,_ in T: mats.add(m)
             if g in DEFAULT_ON: lines.append(' blank'); names.append('none')
