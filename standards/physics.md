@@ -21,3 +21,7 @@ Budget: <= 6 jiggle parts for the whole character. Small items (earrings, pendan
 - **Kwek cross earring (left ear)**: chain `dyng_earring_left_01 -> dyng_earring_left_02`, cone 35 deg (HalfCone),
   pullForceFactor 3.0  ->  1 jiggle: ConstrainAngles 35, Strength 0.75, Speed 0.75, pivot at the hoop (lobe).
   The right earring of the pair is not used (right ear carries the ANRUI cyberware).
+
+# Mesh standard: normals
+Always use the source mesh's authored vertex normals (CP `PS_Normal`) for export. Recomputing them from triangle winding
+breaks on garments with hard edges / mixed winding (Denim Edgerunner hoodie showed a fake 'camo' blotch pattern).

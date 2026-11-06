@@ -365,11 +365,11 @@ if OUTFIT and BODY:
             PLAT={k:xbm.load(_yb.extract(_ybf[names.fnv((_YT+k+'.xbm').lower())])) for k in ('boots_d','boots_n','boots_m','boots_r','metal_d','metal_n','metal_m','metal_r') if names.fnv((_YT+k+'.xbm').lower()) in _ybf}
             print('platform textures',sorted(PLAT))
             for k_,s_ in enumerate(mesh.decode(_yb.extract(_ybf[2721687290290620523]))['subs']):
-                parts.append(dict(pos=s_['pos'],idx=s_['idx'],uv=s_['uv0'],tex=PLAT['boots_d' if k_==0 else 'metal_d'].convert('RGBA'),alpha=0,name='plat_'+('boots' if k_==0 else 'metal')))
+                parts.append(dict(pos=s_['pos'],idx=s_['idx'],uv=s_['uv0'],nrm=s_.get('nrm'),tex=PLAT['boots_d' if k_==0 else 'metal_d'].convert('RGBA'),alpha=0,name='plat_'+('boots' if k_==0 else 'metal')))
             continue
         q='pkd_rvcoondumpster\\denimedgerunner\\%s_pma_denimedgerunner_%s_base_body.mesh'%(_pre[it],it)
         for s_ in mesh.decode(_dn.extract(_dnf[names.fnv(q.lower())]))['subs']:
-            parts.append(dict(pos=s_['pos'],idx=s_['idx'],uv=s_['uv0'],tex=DEN['d01'],alpha=0,name='den_'+it))
+            parts.append(dict(pos=s_['pos'],idx=s_['idx'],uv=s_['uv0'],nrm=s_.get('nrm'),tex=DEN['d01'],alpha=0,name='den_'+it))
 # Takemura neck cyberware: ml_h1_001_ma_cyberware__takemura.mlsetup baked (titanium / cast iron / enamel / red tech plastic)
 CWA=np.asarray(Image.open('/home/claude/work/staging/cw_albedo.png').convert('RGB')).astype(np.float32)
 _met=np.asarray(Image.open('/home/claude/work/staging/cw_metal.png')).astype(np.float32)[...,None]/255

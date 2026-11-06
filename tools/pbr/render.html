@@ -16,8 +16,8 @@ precision highp float; in vec3 wp; in vec3 wn; in vec2 uv; in vec4 lp; out vec4 
 uniform sampler2D tB,tN,tMR,tE,tS; uniform vec4 base; uniform float metal,rough,nsc,emisF,cutoff,skin,clearc,shmin,selfl,nospec,hair; uniform vec3 hc;
 uniform int hasB,hasN,hasMR,hasE,mode,emitOnly,dbg; uniform vec3 cam; uniform vec3 Ld[4]; uniform vec3 Lc[4];
 vec3 lin(vec3 c){return pow(c,vec3(2.2));}
-float shadow(){vec3 s=lp.xyz/lp.w*.5+.5; if(s.x<0.||s.x>1.||s.y<0.||s.y>1.)return 1.; float r=0.; vec2 ts=1./vec2(textureSize(tS,0));
- for(int x=-2;x<=2;x++)for(int y=-2;y<=2;y++){r+= (s.z-0.0015 > texture(tS,s.xy+vec2(x,y)*ts).r)?0.:1.;} return r/25.;}
+uniform float shbias; float shadow(){vec3 s=lp.xyz/lp.w*.5+.5; if(s.x<0.||s.x>1.||s.y<0.||s.y>1.)return 1.; float r=0.; vec2 ts=1./vec2(textureSize(tS,0));
+ for(int x=-2;x<=2;x++)for(int y=-2;y<=2;y++){r+= (s.z-shbias > texture(tS,s.xy+vec2(x,y)*ts).r)?0.:1.;} return r/25.;}
 mat3 tbn(vec3 n){vec3 dp1=dFdx(wp),dp2=dFdy(wp);vec2 du1=dFdx(uv),du2=dFdy(uv);vec3 dp2p=cross(dp2,n),dp1p=cross(n,dp1);
  vec3 t=dp2p*du1.x+dp1p*du2.x; vec3 b=dp2p*du1.y+dp1p*du2.y; float k=inversesqrt(max(dot(t,t),dot(b,b))+1e-20); return mat3(t*k,b*k,n);}
 void main(){
@@ -105,7 +105,7 @@ async function loadGLB(url){
    out.push({name:me.name,va,n:I.length,c:[cx/n3,cy/n3,cz/n3],mode:m.alphaMode==='MASK'?1:m.alphaMode==='BLEND'?2:0,cutoff:m.alphaCutoff||0.5,double:!!m.doubleSided,
      base:pb.baseColorFactor||[1,1,1,1],metal:pb.metallicFactor??1,rough:pb.roughnessFactor??1,tB:pb.baseColorTexture?texs[pb.baseColorTexture.index]:null,
      tN:m.normalTexture?texs[m.normalTexture.index]:null,nsc:m.normalTexture?(m.normalTexture.scale??1):1,tMR:pb.metallicRoughnessTexture?texs[pb.metallicRoughnessTexture.index]:null,
-     tE:m.emissiveTexture?texs[m.emissiveTexture.index]:null,emisF:(m.emissiveFactor||[0])[0],skin:ex.skin||0,clearc:ex.clearcoat||0,order:ex.order||0,shmin:ex.shmin||0,selfl:ex.selflit||0,nospec:ex.nospec||0,hair:ex.hair||0});
+     tE:m.emissiveTexture?texs[m.emissiveTexture.index]:null,emisF:(m.emissiveFactor||[0])[0],skin:ex.skin||0,clearc:ex.clearcoat||0,order:ex.order||0,shmin:ex.shmin||0,selfl:ex.selflit||0,cull:!!ex.cull,nospec:ex.nospec||0,hair:ex.hair||0});
  })}); return {meshes:out,lo,hi};
 }
 (async()=>{try{
@@ -139,19 +139,20 @@ async function loadGLB(url){
  function scene(emitOnly){
   gl.bindFramebuffer(gl.FRAMEBUFFER,mfb); gl.viewport(0,0,W,H); gl.clearColor(0,0,0,1); gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
   gl.useProgram(P0); const U=n=>gl.getUniformLocation(P0,n);
-  gl.uniformMatrix4fv(U('VP'),false,VP); gl.uniformMatrix4fv(U('LVP'),false,LVP); gl.uniform3fv(U('cam'),cam); gl.uniform3fv(U('Ld'),L.flat()); gl.uniform3fv(U('Lc'),LC.flat()); gl.uniform1i(U('emitOnly'),emitOnly); gl.uniform1i(U('dbg'),+Q.get('dbg')||0);
+  gl.uniformMatrix4fv(U('VP'),false,VP); gl.uniformMatrix4fv(U('LVP'),false,LVP); gl.uniform3fv(U('cam'),cam); gl.uniform3fv(U('Ld'),L.flat()); gl.uniform3fv(U('Lc'),LC.flat()); gl.uniform1i(U('emitOnly'),emitOnly); gl.uniform1f(U('shbias'),+Q.get('shb')||0.0015); gl.uniform1i(U('dbg'),+Q.get('dbg')||0);
   gl.activeTexture(gl.TEXTURE4); gl.bindTexture(gl.TEXTURE_2D,st); gl.uniform1i(U('tS'),4);
   const opaque=S.meshes.filter(m=>m.mode!==2), blend=S.meshes.filter(m=>m.mode===2).sort((a,b)=>(a.order-b.order)||(Math.hypot(...sub(b.c,cam))-Math.hypot(...sub(a.c,cam))));
   for(const m of [...opaque,...blend]){
    if(m.mode===2){gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);gl.depthMask(false);} else {gl.disable(gl.BLEND);gl.depthMask(true);}
    if(emitOnly&&m.mode===2){gl.disable(gl.BLEND);} 
+   if(m.cull){gl.enable(gl.CULL_FACE);gl.cullFace(gl.BACK);} else gl.disable(gl.CULL_FACE);
    gl.uniform4fv(U('base'),m.base); gl.uniform1f(U('metal'),m.metal); gl.uniform1f(U('rough'),m.rough); gl.uniform1f(U('nsc'),m.nsc); gl.uniform1f(U('emisF'),m.emisF);
    gl.uniform1f(U('cutoff'),m.cutoff); gl.uniform1f(U('skin'),m.skin); gl.uniform1f(U('clearc'),m.clearc); gl.uniform1f(U('shmin'),m.shmin); gl.uniform1f(U('selfl'),m.selfl); gl.uniform1f(U('nospec'),m.nospec); gl.uniform1f(U('hair'),m.hair); gl.uniform3fv(U('hc'),HC); gl.uniform1i(U('mode'),m.mode);
    [['tB',m.tB,0,'hasB'],['tN',m.tN,1,'hasN'],['tMR',m.tMR,2,'hasMR'],['tE',m.tE,3,'hasE']].forEach(([n,t,u,h])=>{gl.activeTexture(gl.TEXTURE0+u);gl.bindTexture(gl.TEXTURE_2D,t);gl.uniform1i(U(n),u);gl.uniform1i(U(h),t?1:0)});
    if(emitOnly && !m.tE && m.mode===2) continue;
    gl.bindVertexArray(m.va); gl.drawElements(gl.TRIANGLES,m.n,gl.UNSIGNED_INT,0);
   }
-  gl.depthMask(true); gl.disable(gl.BLEND);
+  gl.depthMask(true); gl.disable(gl.BLEND); gl.disable(gl.CULL_FACE);
   gl.bindFramebuffer(gl.READ_FRAMEBUFFER,mfb); gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER,hfb); gl.blitFramebuffer(0,0,W,H,0,0,W,H,gl.COLOR_BUFFER_BIT,gl.NEAREST);
   gl.bindFramebuffer(gl.FRAMEBUFFER,null); gl.viewport(0,0,W,H); gl.useProgram(PT); gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D,hdr);
   gl.uniform1i(gl.getUniformLocation(PT,'tC'),0); gl.uniform1f(gl.getUniformLocation(PT,'exposure'),emitOnly?1.0:(+Q.get('exp')||1.0)); gl.drawArrays(gl.TRIANGLES,0,3);

@@ -51,8 +51,9 @@ if 'OUTFIT' in globals() and OUTFIT:
             for t in ('boots','metal'):
                 _r=PLAT.get(t+'_r'); _m=PLAT.get(t+'_m'); _sz=(_r or _m or PLAT[t+'_d']).size
                 M['plat_'+t]=G.material('plat_'+t,base=PLAT[t+'_d'].convert('RGB'),normal=glb.cp_normal(PLAT[t+'_n']) if t+'_n' in PLAT else None,mr=glb.mr_map((_r.convert('L') if _r else Image.new('L',_sz,140)),(_m.convert('L').resize(_sz) if _m else Image.new('L',_sz,255 if t=='metal' else 0))))
-        else: M['den_'+it]=G.material('den_'+it,base=_dbase,normal=_dn_,mr=_dmr,emis=_de,emis_f=(1,1,1),double=True)
+        else: M['den_'+it]=G.material('den_'+it,base=_dbase,normal=_dn_,mr=_dmr,emis=_de,emis_f=(1,1,1),ext={'cull':1})   # cloth has an inner shell: cull back faces
 for p in parts:
     if p['name'] not in M: continue
-    G.mesh(p['name'],p['pos'],p['idx'],p['uv'],M[p['name']])
+    _n=p.get('nrm'); _n=None if _n is None else _n[:,:3]/np.maximum(np.linalg.norm(_n[:,:3],axis=1,keepdims=True),1e-9)
+    G.mesh(p['name'],p['pos'],p['idx'],p['uv'],M[p['name']],normals=_n)   # authored normals where the source has them
 print('glb bytes',G.save(sys.argv[1] if len(sys.argv)>1 else S+'stage_head.glb'))
