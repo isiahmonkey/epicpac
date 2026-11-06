@@ -128,7 +128,10 @@ def main():
         if nm in texdone: return
         texdone.add(nm); c=cls(nm); tex=p.get('tex')
         im=tex if tex is not None else Image.new('RGBA',(8,8),(128,128,128,255))
-        im=to_tga(im.convert('RGBA'),nm); has_a=np.asarray(im)[...,3].min()<250
+        im=to_tga(im.convert('RGBA'),nm)
+        _p2=lambda v:1<<max(2,round(np.log2(v)))
+        if im.size!=(_p2(im.size[0]),_p2(im.size[1])): im=im.resize((_p2(im.size[0]),_p2(im.size[1])),Image.LANCZOS)
+        has_a=np.asarray(im)[...,3].min()<250
         if c not in ('cards','decal','glass') and not has_a: im=im.convert('RGB')
         im.save(KIT+'materialsrc/%s_%s.tga'%(NAME,nm)); open(KIT+'materialsrc/%s_%s.txt'%(NAME,nm),'w').write('nocompress 0\n')
         A=''
