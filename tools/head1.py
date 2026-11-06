@@ -214,7 +214,12 @@ import rdar as _rd3
 _kw=_rd3.Archive('/home/claude/work/new1/src/mods/kwek_earrings06.archive'); _kwf={f['hash']:f for f in _kw.files}
 EARRING=mesh.decode(_kw.extract(_kwf[names.fnv('kwek\\items\\clothing\\face\\earrings_06\\earrings_06.mesh')]))['subs'][0]
 _et=EARRING['idx'].reshape(-1,3); _keep=EARRING['pos'][_et].mean(1)[:,0]<0
-_ER=dict(EARRING,idx=_et[_keep].ravel()); _q=warp_from_vanilla(_ER['pos'])
+_ER=dict(EARRING,idx=_et[_keep].ravel())
+# rigid: a per-vertex warp bends the metal, so move the whole earring by the warp at its hoop (top), then seat the hoop
+_used=np.unique(_ER['idx']); _top=_used[np.argsort(_ER['pos'][_used,2])[-12:]]
+_d=(warp_from_vanilla(_ER['pos'][_top])-_ER['pos'][_top]).mean(0)
+EARRING_LIFT=float(os.environ.get('EARRING_LIFT','0.005'))          # hoop up into the lobe so it reads as pierced
+_q=_ER['pos']+_d+np.array([0,0,EARRING_LIFT])
 parts.append(dict(pos=_q,idx=_ER['idx'],uv=_ER['uv0'],tex=Image.open('/home/claude/work/staging/ear06_albedo.png').convert('RGBA'),alpha=0,name='earring'))
 # Takemura neck cyberware: ml_h1_001_ma_cyberware__takemura.mlsetup baked (titanium / cast iron / enamel / red tech plastic)
 CWA=np.asarray(Image.open('/home/claude/work/staging/cw_albedo.png').convert('RGB')).astype(np.float32)
