@@ -45,7 +45,7 @@ LAYOUT={
    'wrist_left':{'nd_cross_bracelet':['nd_acc']},
  },
 }
-BODY_MODEL='token_body'; KITZIP='token_kit.zip'; PACZIP='token_pac3.zip'; BATNAME='compile_token.bat'
+BODY_MODEL='token_body'; KEEP=False; KITZIP='token_kit.zip'; PACZIP='token_pac3.zip'; BATNAME='compile_token.bat'
 DEFAULT_ON={'head','arms','neck_cyberware','head_hair','face_cyberware','face_piercings','face_decal','ear_left','ear_right'}   # groups without a 'blank' at index 0
 
 # ---------------- budget: Gmod-friendly triangle counts ----------------
@@ -119,8 +119,8 @@ NORMALS={  # extra normal maps where they carry the look
  'body':'/home/claude/work/tex/base/t0_000_ma__c_base_n03_censored.png',
  'arms':'/home/claude/work/tex/base/a0_000_ma_base__hq_nd01.png'}
 def main():
-    if os.path.exists(KIT): shutil.rmtree(KIT)
-    for d in ('modelsrc','materialsrc','materials'): os.makedirs(KIT+d)
+    if os.path.exists(KIT) and not KEEP: shutil.rmtree(KIT)
+    for d in ('modelsrc','materialsrc','materials'): os.makedirs(KIT+d,exist_ok=True)
     byname={}
     for p in P: byname.setdefault(p['name'],[]).append(p)
     texdone=set(); report={}; plan={}
@@ -167,7 +167,7 @@ def main():
         smd.write(KIT+'modelsrc/%s_bind.smd'%model,RT.vn,RT.vp,NL,[])
         if model==BODY_MODEL:   # body skin regions: each its own toggle (hide skin under clothes)
             for r,ch in BODY_REGIONS.items():
-                T=tris_of(['body'],chunks=ch); fn='%s_skin_%s.smd'%(model,r); smd.write(KIT+'modelsrc/'+fn,RT.vn,RT.vp,NL,T); allt+=T
+                T=tris_of(['body'],chunks=ch); fn='%s_skin_%s.smd'%(model,r); smd.write(KIT+'modelsrc/'+fn,RT.vn,RT.vp,NL,T); allt+=T; mats.update(m for m,_ in T)
                 qc.append('$bodygroup "skin_%s"\n{\n studio "%s"\n blank\n}'%(r,fn)); groupsout['skin_'+r]=['on','off']
         for g,opts in groups.items():
             lines=[]; names=[]
@@ -180,13 +180,14 @@ def main():
             if g in DEFAULT_ON: lines.append(' blank'); names.append('none')
             qc.append('$bodygroup "%s"\n{\n%s\n}'%(g,'\n'.join(lines))); groupsout[g]=names
         if model==BODY_MODEL:
-            smd.write(KIT+'modelsrc/token_phys.smd',RT.vn,RT.vp,NL,phys_tris([t for t in allt if t[0].endswith(('_body','_skin','_arms'))]))
+            smd.write(KIT+'modelsrc/%s_phys.smd'%model,RT.vn,RT.vp,NL,phys_tris([t for t in allt if t[0].endswith(('_body','_skin','_arms'))]))
         qc.append('$sequence "idle" "%s_bind.smd" fps 1'%model)
         open(KIT+'modelsrc/%s.qc'%model,'w',newline='\r\n').write('\n'.join(qc)+'\n')
         plan[model]=dict(bodygroups=groupsout,materials=sorted(mats),tris=len(allt))
         print(model,'tris',len(allt),'materials',len(mats))
-    json.dump(dict(plan=plan,tris_per_piece=report),open(KIT+'token_plan.json','w'),indent=1)
-    open(KIT+BATNAME,'w',newline='\r\n').write(bat(plan))
+    if BATNAME:
+        json.dump(dict(plan=plan,tris_per_piece=report),open(KIT+'token_plan.json','w'),indent=1)
+        open(KIT+BATNAME,'w',newline='\r\n').write(bat(plan))
     return plan
 def bat(plan):
     s=(r'''@echo off

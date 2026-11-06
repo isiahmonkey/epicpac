@@ -35,3 +35,9 @@ Every separate clothing / accessory piece is its own **bodygroup**: one submodel
 ## Outfit PACs
 - Every outfit includes the base body (head, Gorilla arms, Keelan locs, all cyberware, face, ears) **plus the fur hat**.
 - outfit1: Misfits tank, Edgerunner denim pants (PinkyDude Denim Edgerunner), vinyl platforms (black), silver wallet chain, Valentino silver necklace. Build: `tools/token/outfit.py outfit1`. The necklace is re-fitted per outfit (stage_skin with only that outfit's clothes), so it rests on what that outfit actually wears.
+
+## Fast iteration (token_build)
+- Two models per outfit PAC: `token_base` (head, arms, hair, hat, cyberware, face, ears, skin regions; built once, shared) + `token_<outfit>` (that outfit's clothes and jewelry only). The outfit PAC hides covered base skin regions with bodygroups (plans/<outfit>.json `hide_skin`).
+- Device folder `V_Gmod\gmod_build\token_build\`, `build.bat` → `build.ps1`: hash cache, so only changed textures and models rebuild, in parallel. Each model gets its own `<model>_pac3.zip`.
+- Claude ships only changed files as `token_build_patchNN.zip` (`tools/token/ship.py`), and build.bat unpacks it.
+- Position, colour and shine tweaks go in the PAC3 editor or the VMTs first, and need no compile.
