@@ -48,3 +48,15 @@ Source preset: `takemura hades edition.preset` (40 options, resolved against `ma
 - **Accessories:** ND Barbed cross bracelet (silver) on the LEFT wrist (`ACC=cross_bracelet_l`).
 - **Torso:** the fur jacket is hidden (kept). Next up is the Misfits tank: `Tank_Misfits.archive` is a single 600x600 BC7 print decal, Misfits Fiend Skull, that overrides a vanilla texture (hash 0xb2b9add34d408bcc). `collect_misfits.wscript` finds that path and pulls the male tank tops.
 - **Torso:** the Misfits tank. Tank_Misfits.archive overrides Johnny's tank print `t1_090_tank__johnny\textures\fuk_d01.xbm`. The base is `t1_090_pma_tank__johnny.mesh`, 'fuk' appearance, which uses Silverhand's `ml_t1_002` mlsetup and mask: a faded black knit with the lint microblend. The print is a 600x600 BC7 texture, decoded from its sizeInfo.
+- **Legs:** Axellysse Baggy Jeans, Black: washed black denim, distressed. Synth Pants are hidden.
+- **Necklace:** Valentino Cross (MJC), Silver.
+  - The mod's chain is a flat ribbon with links only in a normal map, and every variant shares that mesh, so the chain was REPLACED by a modelled 3-strand silver rope.
+  - Rope spec: 3.2 mm thick, 6.5 mm twist pitch, about 32k triangles. Decimate for PAC.
+  - It is swept along HER loop: uniformly scaled x1.19 onto his body, then eased smoothly over the Takemura collar ring and plate.
+  - The mod's cross is kept, uniformly scaled and hooked to the lowest point of the rope.
+  - Material: vanilla i1_090 silver mlsetup (bare silver).
+- **Shirt collar:** nudged out minimally (falloff 18 mm) so the neckline rests on the neck-plate edge.
+- **Coat:** Axellysse Long Fur Coat, black_carbon, with the same frizz treatment. The short fur jacket is hidden.
+- **Pending (collect_wardrobe.wscript):**
+  - Tron Shoes, red: `fronky\tronshoes`, built on the Judy shoe mask.
+  - Black Leather Bolero (Jacket_10_GITS): t2_091 racing jacket mesh plus `black.mlsetup`.

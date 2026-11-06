@@ -376,9 +376,13 @@ if OUTFIT and BODY:
     DEN={k:_dx2(_DT2+k+'.xbm') for k in ('d01','m01','r01','n01','e01')}
     _pre={'hoodie':'t1','pants':'l1','chain':'i1','jacket':'t2','belt':'i1','kneepads':'i1','elbowpads':'i1','bandolier':'i1','glove':'g1','boots':'s1'}
     for it in OUTFIT:
-        if it=='furjacket':      # axellysse fur jacket, black_carbon: same fur cards + cap material as the hat
-            _fa2=modres.AR['axellysse_fur_collection']; _ff2={f['hash']:f for f in _fa2.files}
-            _jsubs=mesh.decode(_fa2.extract(_ff2[names.fnv('axellysse\\fur_collection\\mesh\\jacket_fur_m_base_body.mesh')]))['subs']
+        if it in ('furjacket','longfur'):      # axellysse fur jacket / LONG fur coat, black_carbon: fur cards + cap material
+            if it=='longfur':
+                _fa2=modres.AR['axellysse_long_fur_coat']; _ff2={f['hash']:f for f in _fa2.files}
+                _jsubs=mesh.decode(_fa2.extract(_ff2[names.fnv('axellysse\\equipment\\torso_outer\\long_fur_coat\\meshes\\axellysse_fur_long_coat_m_base_body.mesh')]))['subs']
+            else:
+                _fa2=modres.AR['axellysse_fur_collection']; _ff2={f['hash']:f for f in _fa2.files}
+                _jsubs=mesh.decode(_fa2.extract(_ff2[names.fnv('axellysse\\fur_collection\\mesh\\jacket_fur_m_base_body.mesh')]))['subs']
             _cp_=_jsubs[0]['pos']; _cn_=_jsubs[0]['nrm'][:,:3]; _cn_=_cn_/np.linalg.norm(_cn_,axis=1,keepdims=True)
             _cc=_cp_.mean(0); _cn_*=np.sign(((_cp_-_cc)*_cn_).sum(1,keepdims=True)+1e-9)                      # outward
             _jsubs[1]=dict(_jsubs[1],nrm=_cn_[cKDTree(_cp_).query(_jsubs[1]['pos'])[1]])                   # fur cards take the smooth under-layer normal
@@ -432,6 +436,15 @@ if OUTFIT and BODY:
                 nm_=['mis_tank','mis_print','mis_stitch'][min(k_,2)]
                 parts.append(dict(pos=s_['pos'],idx=s_['idx'],uv=s_['uv0'],nrm=s_.get('nrm'),tex=[Image.fromarray((MIS['albedo']*255).astype(np.uint8)).convert('RGBA'),MIS['print'],MIS['stitch']][min(k_,2)],alpha=0 if k_==0 else 2,name=nm_))
             continue
+        if it=='jeans':          # axellysse baggy jeans, Black (self-contained metal_base texture set)
+            import garments as _ga4
+            _JT='axellysse\\baggy_jeans\\textures\\axellysse_baggy_jeans_'
+            JNS={k:xbm.load(_ga4.segs_of(_JT+k+'.xbm')) for k in ('black','n','r','m')}
+            for s_ in mesh.decode(_ga4.segs_of('axellysse\\baggy_jeans\\axellysse_baggy_jeans_m_base_body.mesh'))['subs']:
+                parts.append(dict(pos=s_['pos'],idx=s_['idx'],uv=s_['uv0'],nrm=s_.get('nrm'),tex=JNS['black'].convert('RGBA'),alpha=0,name='jeans'))
+            continue
+        if it=='vcross':
+            VCROSS_DEFER=True; continue
         if it=='walletchain':    # Edgerunner wallet chain re-finished in polished silver
             q='pkd_rvcoondumpster\\denimedgerunner\\i1_pma_denimedgerunner_chain_base_body.mesh'
             for s_ in mesh.decode(_dn.extract(_dnf[names.fnv(q.lower())]))['subs']:
@@ -463,6 +476,133 @@ shade=np.clip(1+_emb-0.9*np.clip(-_cav,0,1)+0.35*np.clip(_cav,0,1),0.35,1.6)[...
 CWT=Image.fromarray(np.clip(CWA*(1+0.35*_met*(1-_rg))*shade,0,255).astype(np.uint8)).convert('RGBA')   # preview: polished metal reads a touch brighter
 for s in cy['subs']: parts.append(dict(pos=s['pos'],idx=s['idx'],uv=s['uv0'],tex=CWT,alpha=0,name='cyberware'))
 print('cyber bbox',cy['subs'][0]['pos'].min(0).round(3),cy['subs'][0]['pos'].max(0).round(3))
+def _vcross_build():
+    global VX
+    import rdar as _rd9, ml as _ml3, garments as _ga5
+    sys.path.insert(0,'/home/claude/work/tattoo'); import transfer as _T
+    _va=_rd9.Archive('/mnt/user-data/uploads/Slot 1/Valentino Cross Necklace/basegame_MJC_FaceF_Slot1_VNeckCrossSilver.archive')
+    _vs=[x for x in mesh.decode(_va.extract(_va.files[0]))['subs'] if len(x['pos'])>3]
+    _fb,_mb=_T.fb,_T.mb; _tf=cKDTree(_fb[0]); _bm=_T.box_map(_fb[0],_mb[0])
+    def _fit(P):
+        d,i=_tf.query(P); f=_fb[0][i]; q,_=_T.snap(_bm(f),[_mb]); return q+(P-f)
+    _VJ='base\\characters\\garment\\gang_valentino\\item\\i1_090_full__jewlery\\textures\\'
+    if _ga5.segs_of(_VJ+'ml_i1_090_wa_full__jewlery_silver.mlsetup'):
+        _ml3.FALLBACK_MASK=None; VX=_ml3.bake(_VJ+'ml_i1_090_wa_full__jewlery_silver.mlsetup',_VJ+'ml_i1_090_wa_full__jewlery_masksset.mlmask',1024); VX['interim']=False
+    else: VX=dict(interim=True)
+    # obstacles the chain must drape OVER: neck cyberware plate, tank, body
+    _obs=np.concatenate([x['pos'] for x in parts if x['name'] in ('cyberware','mis_tank','body','skin','den_hoodie')]).astype(np.float64); _to=cKDTree(_obs)
+    # SWEEP fit: the in-game chain is re-swept along one smooth loop on HIS collarbones (links keep exact shape; even spacing)
+    _obsS=[]
+    for x in parts:
+        if x['name'] in ('cyberware','mis_tank','body','skin','den_hoodie'): _obsS.append(x['pos'].astype(np.float64))
+    _OP=np.concatenate(_obsS); _OP=_OP[(_OP[:,2]>1.30)&(_OP[:,2]<1.62)]
+    _c0=_vs[0]['pos'].astype(np.float64); _cr0=_vs[1]['pos'].astype(np.float64)
+    def _centre(P,NB=180):          # closed centreline of a loop around the vertical axis (front = +y)
+        ax=np.array([P[:,0].mean(),P[:,1].mean()]); th=np.arctan2(P[:,0]-ax[0],P[:,1]-ax[1]); bi=np.floor((th+np.pi)/(2*np.pi)*NB).astype(int)%NB
+        C=np.array([P[bi==k].mean(0) if (bi==k).any() else [np.nan]*3 for k in range(NB)]); ok=~np.isnan(C[:,0]); kk=np.arange(NB)
+        for c in range(3): C[~ok,c]=np.interp(kk[~ok],kk[ok],C[ok,c],period=NB)
+        return C
+    def _dense(C,n=2400):
+        Cc=np.vstack([C,C[:1]]); seg=np.linalg.norm(np.diff(Cc,axis=0),axis=1); S=np.r_[0,np.cumsum(seg)]; t=np.linspace(0,S[-1],n,endpoint=False)
+        return np.stack([np.interp(t,S,Cc[:,c]) for c in range(3)],1), S[-1]
+    def _frames(D):
+        T=np.roll(D,-1,0)-np.roll(D,1,0); T/=np.linalg.norm(T,axis=1,keepdims=True)
+        ctr=D.mean(0); R=D-ctr; R[:,2]=0; N=R-(R*T).sum(1,keepdims=True)*T; N/=np.linalg.norm(N,axis=1,keepdims=True); B=np.cross(T,N); return T,N,B
+    _sm1=lambda a,w: np.convolve(np.r_[a[-w:],a,a[:w]],np.ones(2*w+1)/(2*w+1),'valid')
+    # source sweep coordinates
+    D0,L0=_dense(_centre(_c0)); T0,N0,B0=_frames(D0); _t0=cKDTree(D0); _,_iv=_t0.query(_c0)
+    _rel=_c0-D0[_iv]; _on=(_rel*N0[_iv]).sum(1); _ob=(_rel*B0[_iv]).sum(1); _ot=(_rel*T0[_iv]).sum(1); _sv=_iv/len(D0)
+    _startang=np.arctan2(D0[0,0]-D0[:,0].mean(),D0[0,1]-D0[:,1].mean())
+    # target loop = HER loop placed where it sits on her, mapped to his body (uniform similarity -> identical shape)
+    _Q=_fit(D0); m0=D0.mean(0); mq=_Q.mean(0); A0=D0-m0; Aq=_Q-mq
+    _s=float((A0*Aq).sum()/(A0*A0).sum()); _s=float(np.clip(_s,1.0,1.25))
+    _xs=lambda P: (P-m0)*_s+mq+np.array([0,0,float(os.environ.get('VCROSS_DZ','0.0'))])
+    D1=_xs(D0); D1_0=D1.copy()
+    # ease outward ONLY where it would pass through the collar ring / plate / shirt: wide smooth falloff (no kinks)
+    _OPn=[];
+    for x in parts:
+        if x['name'] not in ('cyberware','mis_tank','body','skin','den_hoodie'): continue
+        v=x['pos'].astype(np.float64); f=x['idx'].reshape(-1,3); fn=np.cross(v[f[:,1]]-v[f[:,0]],v[f[:,2]]-v[f[:,0]]); n=np.zeros_like(v)
+        for k in range(3): np.add.at(n,f[:,k],fn)
+        n/=np.maximum(np.linalg.norm(n,axis=1,keepdims=True),1e-12); r=v-np.array([0,-0.035,v[:,2].mean()]); r[:,2]*=0.3; n*=np.sign((n*r).sum(1,keepdims=True)+1e-12)
+        k=(v[:,2]>1.3)&(v[:,2]<1.65); _OPn.append((v[k],n[k]))
+    _P2=np.concatenate([o[0] for o in _OPn]); _N2=np.concatenate([o[1] for o in _OPn]); _T2=cKDTree(_P2)
+    nS=len(D1); arc=L0*_s/nS; sig=int(0.035/arc)                       # ~3.5cm smoothing along the chain
+    gk=np.exp(-0.5*(np.arange(-3*sig,3*sig+1)/sig)**2); gk/=gk.max()
+    for _it in range(12):
+        d,i=_T2.query(D1); h=((D1-_P2[i])*_N2[i]).sum(1); need=np.clip(0.0045-h,0,None)*(d<0.04)
+        if need.max()<1e-4: break
+        env=np.zeros(nS)
+        for kk,g in zip(range(-3*sig,3*sig+1),gk): env=np.maximum(env,np.roll(need,kk)*g)   # smooth upper envelope
+        D1=D1+_N2[i]*0+ (np.roll(D1,0,0)*0)                                                 # (placeholder no-op)
+        Nout=D1-np.array([0,-0.035,0]); Nout[:,2]=0; Nout/=np.linalg.norm(Nout,axis=1,keepdims=True)
+        D1=D1+Nout*env[:,None]*0.9
+        D1=np.stack([np.convolve(np.r_[D1[-sig:,c],D1[:,c],D1[:sig,c]],np.ones(2*sig+1)/(2*sig+1),'valid') for c in range(3)],1) if _it%3==2 else D1
+    _push=D1-D1_0
+    # MODELLED rope chain (silver panel of the mod's colour sheet): 3 twisted strands swept along the necklace path
+    _P=D1.copy()
+    _P=np.stack([np.convolve(np.r_[_P[-40:,c],_P[:,c],_P[:40,c]],np.ones(81)/81,'valid') for c in range(3)],1)   # silky smooth path
+    _Pd,_Lp=_dense(_P,int(os.environ.get('VCROSS_RINGS','900'))); _Tp=np.roll(_Pd,-1,0)-np.roll(_Pd,1,0); _Tp/=np.linalg.norm(_Tp,axis=1,keepdims=True)
+    _up=np.array([0,0,1.0]); _Np=np.cross(_up,_Tp); _Np/=np.linalg.norm(_Np,axis=1,keepdims=True); _Bp=np.cross(_Tp,_Np)
+    RW=float(os.environ.get('VCROSS_WIRE','0.00075')); RH=RW*1.15; PITCH=float(os.environ.get('VCROSS_PITCH','0.0065')); SIDES=6
+    _arc=np.linspace(0,_Lp,len(_Pd),endpoint=False); V=[];I=[];U=[]; nR=len(_Pd)
+    for k in range(3):
+        ph=2*np.pi*_arc/PITCH+2*np.pi*k/3
+        cen=_Pd+(np.cos(ph)[:,None]*_Np+np.sin(ph)[:,None]*_Bp)*RH
+        dT=np.roll(cen,-1,0)-np.roll(cen,1,0); dT/=np.linalg.norm(dT,axis=1,keepdims=True)
+        a1=np.cross(dT,_Bp); a1/=np.linalg.norm(a1,axis=1,keepdims=True); a2=np.cross(dT,a1)
+        base=len(V)*0+sum(len(v) for v in V)
+        ring=[cen+(np.cos(2*np.pi*j/SIDES)*a1+np.sin(2*np.pi*j/SIDES)*a2)*RW for j in range(SIDES)]
+        Vk=np.stack(ring,1).reshape(-1,3); V.append(Vk); U.append(np.stack([np.repeat(_arc/_Lp,SIDES),np.tile(np.arange(SIDES)/SIDES,nR)],1))
+        r=np.arange(nR); j=np.arange(SIDES); R,J=np.meshgrid(r,j,indexing='ij'); a=R*SIDES+J; b_=((R+1)%nR)*SIDES+J; c=((R+1)%nR)*SIDES+(J+1)%SIDES; d=R*SIDES+(J+1)%SIDES
+        I.append(np.stack([np.stack([a,b_,c],-1),np.stack([a,c,d],-1)],-2).reshape(-1,3)+base)
+    _ch=np.concatenate(V); _chI=np.concatenate(I).ravel(); _chU=np.concatenate(U)
+    print('vcross rope chain: %d tris, %.0f mm long, %.1f mm thick'%(len(_chI)//3,_Lp*1000,(RH+RW)*2000))
+    sx=sy=_s; Qs=[_ch]
+    _OT=cKDTree(_OP)
+    def _pen(Q):
+        d,i=_OT.query(Q); return np.clip(0.003-d,0,None)
+    # pendant: same scale, kept VERTICAL (gravity), hung from the lowest front point of the loop, resting on the shirt
+    _anc=_Pd[np.argmin(_Pd[:,2])].copy(); _anc[2]-=RH                     # hook the bail onto the lowest point of the rope
+    _cr=(_cr0-_cr0.mean(0))*min(1.1,0.5*(sx+sy))+_cr0.mean(0); _top=np.array([_cr[:,0].mean(),_cr[:,1].mean(),_cr[:,2].max()]); _cr=_cr+(_anc-_top)+np.array([0,0,0.0015])
+    for _it in range(40):                      # rest the cross on the plate/shirt, not in it
+        d_,i_=_OT.query(_cr); inside=(_cr[:,1]<_OP[i_,1]+0.0025)&(d_<0.02)
+        if not inside.any(): break
+        _cr[:,1]+=0.0008
+    Qs.append(_cr)
+    parts.append(dict(pos=_ch.astype(np.float32),idx=_chI,uv=_chU,nrm=None,tex=Image.new('RGBA',(4,4),(200,200,205,255)),alpha=0,name='vchain'))
+    parts.append(dict(pos=Qs[1].astype(np.float32),idx=_vs[1]['idx'],uv=_vs[1]['uv0'],nrm=None,tex=Image.new('RGBA',(4,4),(200,200,205,255)),alpha=0,name='vcross'))
+# ---- shirt collar vs neck cyberware: minimal outward nudge so the neckline rests ON the plates' edge (smooth falloff, no dents)
+def _collar_fit(names=('mis_tank','mis_stitch','mis_print'),clear=0.0012,fall=0.018):
+    cwp=np.concatenate([x['pos'] for x in parts if x['name']=='cyberware']).astype(np.float64)
+    tc=cKDTree(cwp); ctr=cwp.mean(0)
+    shirt=[x for x in parts if x['name'] in names]
+    if not shirt: return
+    P=np.concatenate([x['pos'] for x in shirt]).astype(np.float64)
+    # cyberware outward normals from its own geometry (vertex normals via faces)
+    nrm=np.zeros_like(cwp); o=0
+    for x in [y for y in parts if y['name']=='cyberware']:
+        f=x['idx'].reshape(-1,3)+o; v=cwp; fn=np.cross(v[f[:,1]]-v[f[:,0]],v[f[:,2]]-v[f[:,0]])
+        for k in range(3): np.add.at(nrm,f[:,k],fn)
+        o+=len(x['pos'])
+    nrm/=np.maximum(np.linalg.norm(nrm,axis=1,keepdims=True),1e-12)
+    nrm*=np.sign(((cwp-ctr)*nrm).sum(1,keepdims=True)+1e-12)
+    d,i=tc.query(P,k=4); q=cwp[i[:,0]]; n=nrm[i].mean(1); n/=np.maximum(np.linalg.norm(n,axis=1,keepdims=True),1e-12)
+    h=((P-q)*n).sum(1); hit=(d[:,0]<0.03)&(h<clear)
+    D=np.zeros_like(P); D[hit]=n[hit]*(clear-h[hit])[:,None]
+    if hit.any():   # spread each push to its neighbours with a smooth falloff (largest wins) -> fabric eases out, no spikes
+        tp=cKDTree(P); idx=np.where(hit)[0]; mag=np.linalg.norm(D,axis=1)
+        out=D.copy()
+        for j,nb in zip(idx,tp.query_ball_point(P[idx],fall)):
+            nb=np.array(nb); w=(1-np.linalg.norm(P[nb]-P[j],axis=1)/fall)**2; cand=D[j][None]*w[:,None]
+            better=np.linalg.norm(cand,axis=1)>np.linalg.norm(out[nb],axis=1); out[nb[better]]=cand[better]
+        D=out
+    print('collar fit: %d verts pushed, max %.1f mm'%(hit.sum(),np.linalg.norm(D,axis=1).max()*1000))
+    o=0
+    for x in shirt:
+        k=len(x['pos']); x['pos']=(x['pos']+D[o:o+k]).astype(np.float32); o+=k
+if os.environ.get('COLLAR_FIT','1')=='1': _collar_fit()
+if globals().get('VCROSS_DEFER'): _vcross_build()
 parts.sort(key=lambda p:p.get('alpha',0)==2)
 lo=np.array([-0.13,-0.2,1.45]); hi=np.array([0.13,0.15,1.86])
 render.sheet([render.view(parts,yaw=y,size=(440,520),focus=(lo,hi)) for y in (0,-0.7,-1.5708)],'/home/claude/work/staging/head1_%s.png'%TONE)

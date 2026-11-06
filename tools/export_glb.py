@@ -67,6 +67,15 @@ if 'OUTFIT' in globals() and OUTFIT:
             M['mis_tank']=G.material('mis_tank',base=Image.fromarray((MIS['albedo']*255).astype(np.uint8)),normal=glb.cp_normal(_ni),mr=glb.mr_map(Image.fromarray((MIS['rough']*255).astype(np.uint8)),Image.fromarray((MIS['metal']*255).astype(np.uint8))),ext={'cull':1})
             M['mis_print']=G.material('mis_print',base=MIS['print'],alpha='BLEND',rough=0.85,ext={'order':1})
             M['mis_stitch']=G.material('mis_stitch',base=MIS['stitch'],alpha='BLEND',rough=0.8,ext={'order':1})
+        elif it=='jeans':
+            M['jeans']=G.material('jeans',base=JNS['black'].convert('RGB'),normal=glb.cp_normal(JNS['n']),mr=glb.mr_map(JNS['r'].convert('L'),JNS['m'].convert('L').resize(JNS['r'].size)),ext={'cull':1})
+        elif it=='vcross':
+            M['vchain']=G.material('vchain',color=(0.80,0.80,0.82,1),metal=1.0,rough=0.16)   # polished silver rope
+            if VX.get('interim'): M['vcross']=G.material('vcross',color=(0.78,0.78,0.80,1),metal=1.0,rough=0.22)
+            else:
+                import garments as _gaX
+                _vn=xbm.load(_gaX.segs_of('base\\characters\\garment\\gang_valentino\\item\\i1_090_full__jewlery\\textures\\i1_090_wa_full__jewlery_n01.xbm'))
+                M['vcross']=G.material('vcross',base=Image.fromarray((VX['albedo']*255).astype(np.uint8)),normal=glb.cp_normal(_vn),nscale=1.4,mr=glb.mr_map(Image.fromarray((VX['rough']*255).astype(np.uint8)),Image.fromarray((VX['metal']*255).astype(np.uint8))))   # link detail lives in the normal map
         elif it=='walletchain':
             _cl=np.asarray(DEN['d01'].convert('L').resize((2048,2048))).astype(np.float32); _cl=np.clip(150+(_cl-_cl.mean())*0.5,90,215).astype(np.uint8)
             M['chain_silver']=G.material('chain_silver',base=Image.fromarray(np.dstack([_cl,_cl,(_cl*1.02).clip(0,255).astype(np.uint8)])),normal=_dn_,rough=0.22,metal=1.0)
