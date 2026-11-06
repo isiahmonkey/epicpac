@@ -422,6 +422,15 @@ if OUTFIT and BODY:
         q='pkd_rvcoondumpster\\denimedgerunner\\%s_pma_denimedgerunner_%s_base_body.mesh'%(_pre[it],it)
         for s_ in mesh.decode(_dn.extract(_dnf[names.fnv(q.lower())]))['subs']:
             parts.append(dict(pos=s_['pos'],idx=s_['idx'],uv=s_['uv0'],nrm=s_.get('nrm'),tex=DEN['d01'],alpha=0,name='den_'+it))
+# ---- ACCESSORIES: ND Barbed (nola_dreamer) - ACC=cross_collar,moon_bracelet_l,...  ACC_COLOR=silver|gold
+ACC=[x for x in os.environ.get('ACC','').split(',') if x]; ACC_COLOR=os.environ.get('ACC_COLOR','silver')
+if ACC and BODY:
+    import garments as _ga2
+    _NT='base\\nd_base\\textures\\nd_barbed_accessories_'
+    NDT={k:xbm.load(_ga2.segs_of(_NT+k+'.xbm')) for k in ('d_'+ACC_COLOR,'n','r','m')}
+    for it in ACC:
+        for s_ in mesh.decode(_ga2.segs_of('base\\nd_base\\nd_barbed_%s_m_base_body.mesh'%it))['subs']:
+            parts.append(dict(pos=s_['pos'],idx=s_['idx'],uv=s_['uv0'],nrm=s_.get('nrm'),tex=NDT['d_'+ACC_COLOR].convert('RGBA'),alpha=0,name='nd_acc'))
 # Takemura neck cyberware: ml_h1_001_ma_cyberware__takemura.mlsetup baked (titanium / cast iron / enamel / red tech plastic)
 CWA=np.asarray(Image.open('/home/claude/work/staging/cw_albedo.png').convert('RGB')).astype(np.float32)
 _met=np.asarray(Image.open('/home/claude/work/staging/cw_metal.png')).astype(np.float32)[...,None]/255

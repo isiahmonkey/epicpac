@@ -65,6 +65,9 @@ if 'OUTFIT' in globals() and OUTFIT:
             _cl=np.asarray(DEN['d01'].convert('L').resize((2048,2048))).astype(np.float32); _cl=np.clip(150+(_cl-_cl.mean())*0.5,90,215).astype(np.uint8)
             M['chain_silver']=G.material('chain_silver',base=Image.fromarray(np.dstack([_cl,_cl,(_cl*1.02).clip(0,255).astype(np.uint8)])),normal=_dn_,rough=0.22,metal=1.0)
         else: M['den_'+it]=G.material('den_'+it,base=_dbase,normal=_dn_,mr=_dmr,emis=_de,emis_f=(1,1,1),ext={'cull':1})   # cloth has an inner shell: cull back faces
+if 'ACC' in globals() and ACC:
+    _sz=NDT['d_'+ACC_COLOR].size
+    M['nd_acc']=G.material('nd_acc',base=NDT['d_'+ACC_COLOR].convert('RGB'),normal=glb.cp_normal(NDT['n']),mr=glb.mr_map(NDT['r'].convert('L').resize(_sz),NDT['m'].convert('L').resize(_sz)))
 for p in parts:
     if p['name'] not in M: continue
     _n=p.get('nrm'); _n=None if _n is None else _n[:,:3]/np.maximum(np.linalg.norm(_n[:,:3],axis=1,keepdims=True),1e-9)
