@@ -179,21 +179,34 @@ _HU='/mnt/user-data/uploads/characters/common/hair/'
 _hpb=open(_HU+'textures/hair_profiles/black_carbon.hp','rb').read(); _hpr=cr2w.parse(_hpb); HPROF=cr2w.chunk(_hpb,_hpr,0)[1]
 def _hl(f,size=None):
     im=xbm.load(cr2w.load_loose(_HU+f)).convert('L'); im=im.resize(size,Image.LANCZOS) if size else im; return np.asarray(im).astype(np.float32)/255
-_ha=_hl('textures/hh_dread01_alpha01_r.xbm'); _sz=_ha.shape[::-1]
-_hi=_hl('textures/hh_dread01_id01_r.xbm',_sz); _hg=_hl('textures/hh_dread01_grad01_r.xbm',_sz)
-# hair.mt: strand colour = ID gradient (per-strand tint) x root-to-tip gradient (profile), both in sRGB
-_hc=_hgrad(HPROF['gradientEntriesID'],_hi)/255*_hgrad(HPROF['gradientEntriesRootToTip'],_hg)
-_hc*=(0.80+0.20*np.clip(_ha*1.4,0,1))[...,None]
-HAIR_CARDS=Image.fromarray(np.dstack([np.clip(_hc,0,255),_ha*255]).astype(np.uint8),'RGBA')
-_cd=_hl('hh_060_wa__voodoo_03/textures/hh_60_wa__voodoo_03_cap_d02.xbm'); _cm=_hl('hh_060_wa__voodoo_03/textures/hh_60_wa__voodoo_03_cap_mask.xbm',_cd.shape[::-1])
+HAIR=os.environ.get('HAIR','keelan')
+def hair_cards(ha,hi,hg):
+    # hair.mt: strand colour = ID gradient (per-strand tint) x root-to-tip gradient (black_carbon profile)
+    hc=_hgrad(HPROF['gradientEntriesID'],hi)/255*_hgrad(HPROF['gradientEntriesRootToTip'],hg); hc*=(0.80+0.20*np.clip(ha*1.4,0,1))[...,None]; hc*=0.62   # CP hair.mt reads black_carbon far darker than the raw profile (strand self-shadowing)
+    return Image.fromarray(np.dstack([np.clip(hc,0,255),ha*255]).astype(np.uint8),'RGBA')
 _gm=np.asarray(xbm.load(cr2w.load_loose(_HU+'textures/cap_gradiants/hh_cap_grad__black_carbon.xbm')).convert('RGB')).astype(np.float32)[1]
-_gx=np.clip((_cd*(len(_gm)-1)).astype(int),0,len(_gm)-1)
-HAIR_CAP=Image.fromarray(np.dstack([_gm[_gx],_cm*255]).astype(np.uint8),'RGBA')       # mesh_decal_gradientmap_recolor
-_hgeo=mesh.decode(modres.get('base\\characters\\common\\hair\\hh_060_wa__voodoo_03\\hh_060_ma__voodoo_03.mesh'))
-for _k,_s in enumerate(_hgeo['subs']):
+def hair_cap(cd,cm):     # mesh_decal_gradientmap_recolor
+    gx=np.clip((cd*(len(_gm)-1)).astype(int),0,len(_gm)-1); return Image.fromarray(np.dstack([_gm[gx],cm*255]).astype(np.uint8),'RGBA')
+def _L(im,size=None): im=im.convert('L'); im=im.resize(size,Image.LANCZOS) if size else im; return np.asarray(im).astype(np.float32)/255
+if HAIR=='dreads':
+    _ha=_hl('textures/hh_dread01_alpha01_r.xbm'); _sz=_ha.shape[::-1]
+    HAIR_CARDS=hair_cards(_ha,_hl('textures/hh_dread01_id01_r.xbm',_sz),_hl('textures/hh_dread01_grad01_r.xbm',_sz))
+    _cd=_hl('hh_060_wa__voodoo_03/textures/hh_60_wa__voodoo_03_cap_d02.xbm'); HAIR_CAP=hair_cap(_cd,_hl('hh_060_wa__voodoo_03/textures/hh_60_wa__voodoo_03_cap_mask.xbm',_cd.shape[::-1]))
+    _hs=mesh.decode(modres.get('base\\characters\\common\\hair\\hh_060_wa__voodoo_03\\hh_060_ma__voodoo_03.mesh'))['subs']; HSUBS=[(_hs[0],'hair'),(_hs[1],'haircap')]
+else:   # MELUMINARY CCXL "Keelan" top locs (ArchiveXL @long/@cap dynamic materials -> black_carbon)
+    import rdar as _rd2
+    _ka=_rd2.Archive('/home/claude/work/new1/src/mods/MELUMINARY_KEELAN_TOP_LOCS.archive'); _kf={f['hash']:f for f in _ka.files}
+    _kx=lambda p: xbm.load(_ka.extract(_kf[names.fnv(p.lower())]))
+    _K='base\\mel_ccxl_hair\\materials\\custom_tx\\'
+    _ha=_L(_kx(_K+'keelan001_alpha.xbm')); _sz=_ha.shape[::-1]
+    HAIR_CARDS=hair_cards(_ha,_L(_kx(_K+'keelan001_id.xbm'),_sz),_L(_kx(_K+'keelan001_grad.xbm'),_sz))
+    _cd=_L(_kx(_K+'hh_201_wa__dawn_cap_d02.xbm')); HAIR_CAP=hair_cap(_cd,_L(_kx(_K+'hh_201_wa__dawn_cap_mask.xbm'),_cd.shape[::-1]))
+    _km=lambda p: mesh.decode(_ka.extract(_kf[names.fnv(p.lower())]))['subs']
+    HSUBS=[(_km('base\\mel_ccxl_hair\\meshes\\keelan001_hair_pt1.mesh')[0],'hair'),(_km('base\\mel_ccxl_hair\\meshes\\keelan001_hair_pt2.mesh')[0],'haircap')]
+for _s,_nm in HSUBS:
     q=warp_from_vanilla(_s['pos'],k=6)
-    if _k==1: q,_l=float_on(q,hp[0],HM['geo']['subs'][0]['idx'],gap=0.0005)
-    parts.append(dict(pos=q,idx=_s['idx'],uv=_s['uv0'],tex=HAIR_CARDS if _k==0 else HAIR_CAP,alpha=2,name='hair' if _k==0 else 'haircap'))
+    if _nm=='haircap': q,_l=float_on(q,hp[0],HM['geo']['subs'][0]['idx'],gap=0.0005)
+    parts.append(dict(pos=q,idx=_s['idx'],uv=_s['uv0'],tex=HAIR_CARDS if _nm=='hair' else HAIR_CAP,alpha=2,name=_nm))
 # Takemura neck cyberware: ml_h1_001_ma_cyberware__takemura.mlsetup baked (titanium / cast iron / enamel / red tech plastic)
 CWA=np.asarray(Image.open('/home/claude/work/staging/cw_albedo.png').convert('RGB')).astype(np.float32)
 _met=np.asarray(Image.open('/home/claude/work/staging/cw_metal.png')).astype(np.float32)[...,None]/255
