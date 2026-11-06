@@ -56,9 +56,9 @@ HAIR=' "$bumpmap" "{D}/{M}_n"\n "$alphatest" "1"\n "$alphatestreference" "0.4"\n
 PLATE=' "$bumpmap" "{D}/{M}_n"\n "$normalmapalphaenvmapmask" "1"\n "$envmap" "env_cubemap"\n "$envmaptint" "[1.1 1.1 1.15]"\n "$envmapcontrast" "1"\n "$phong" "1"\n "$phongexponent" "60"\n "$phongboost" "5"\n "$phongfresnelranges" "[0.5 0.8 1]"\n "$alphatest" "1"\n "$alphatestreference" "0.5"\n'.replace('{D}',MATDIR).replace('{M}','token_{NM}')
 VMT_OVERRIDE={'cyberware':BLACKMETAL,'ga_cyber':BLACKMETAL,'ga_fingers':BLACKMETAL,'ga_end':BLACKMETAL,'earcyber':BLACKMETAL,'piercing':BLACKMETAL,
  'facecw_face':BLACKMETAL_N,'facecw_nose':BLACKMETAL_N,'eyes':EYES,
- 'hair':HAIR,'hatfur':HAIR,'brows':CARDS_DARK,'brows_s7':CARDS_DARK,'brows_s14':CARDS_DARK,'lashes':CARDS_DARK,
+ 'hair':HAIR,'hatfur':HAIR,'brows':' "$bumpmap" "{D}/{M}_n"\n'+CARDS_DARK.replace('"0.12"','"0.05"'),'brows_s7':CARDS_DARK,'brows_s14':CARDS_DARK,'lashes':CARDS_DARK,
  'haircap':HAIR.replace('"0.4"','"0.12"'),'bolero_ml':LEATHER,'bolerocuff_ml':LEATHER,'chain_silver':SILVER,'earring':SILVER,'nd_acc':SILVER,'vchain':SILVER,'vcross':SILVER}
-DARKEN={'hair':0.42,'hatfur':0.45,'haircap':0.45,'brows':0.6,'brows_s7':0.6,'brows_s14':0.6,'chain_silver':0.38,'earring':0.38,'nd_acc':0.38,'vchain':0.38,'vcross':0.38}   # polished metal: dark diffuse, the shine comes from the cubemap
+DARKEN={'hair':0.3,'hatfur':0.32,'haircap':0.3,'brows':0.6,'brows_s7':0.6,'brows_s14':0.6,'chain_silver':0.55,'earring':0.6,'nd_acc':0.55,'vchain':0.55,'vcross':0.55}   # polished metal: dark diffuse, the shine comes from the cubemap
 BODY_MODEL='token_body'; KEEP=False; KITZIP='token_kit.zip'; PACZIP='token_pac3.zip'; BATNAME='compile_token.bat'
 DEFAULT_ON={'head','arms','neck_cyberware','head_hair','face_cyberware','face_piercings','face_decal','ear_left','ear_right'}   # groups without a 'blank' at index 0
 
@@ -85,6 +85,7 @@ def reduce(p):
     elif nm in DECIMATE and len(F)>3000:
         F=qem.decimate(p['pos'],F,int(len(F)*DECIMATE[nm]),lock=None if nm in NOLOCK else boundary_lock(F,len(p['pos'])))
     return F
+RIGID_EXTRA={'earring':'token_earring'}
 RIGID={'vchain':'ValveBiped.Bip01_Spine4','vcross':'ValveBiped.Bip01_Spine4','earring':'ValveBiped.Bip01_Head1','chain_silver':'ValveBiped.Bip01_Pelvis','nd_acc':'ValveBiped.Bip01_L_Forearm'}
 HEADLIKE={'skin','lashes','eyeshadow','eyes','brows','brows_s7','brows_s14','hair','haircap','hatcap','hatfur','facecw_face','facecw_nose','piercing','maine','earcyber'}
 def head_skin(pos,nrm):
@@ -121,7 +122,7 @@ VMTX={
  'glow':' "$selfillum" "1"\n "$selfillumtint" "[4 .2 .15]"\n',
  'metal':' "$envmap" "env_cubemap"\n "$envmaptint" "[.35 .35 .37]"\n "$envmapsaturation" "0.4"\n "$phong" "1"\n "$phongexponent" "40"\n "$phongboost" "3"\n "$phongfresnelranges" "[0.6 0.85 1]"\n "$halflambert" "1"\n{A}',
  'decal':' "$alphatest" "1"\n "$alphatestreference" "0.45"\n "$allowalphatocoverage" "1"\n "$halflambert" "1"\n',
- 'cloth':' "$halflambert" "1"\n "$phong" "1"\n "$phongexponent" "6"\n "$phongboost" "0.25"\n "$phongfresnelranges" "[0.4 0.7 1]"\n{A}',
+ 'cloth':' "$halflambert" "1"\n "$phong" "1"\n "$phongexponent" "12"\n "$phongboost" "1.2"\n "$phongfresnelranges" "[0.4 0.7 1]"\n{A}',
 }
 TEXCAP={'bolero_ml':2048,'bolerocuff_ml':2048,'den_pants':2048,'vinyl':2048,'den_hoodie':2048,'syn_pants':2048,'skin':2048,'jeans':2048,'mis_tank':2048,'body':2048,'arms':2048,'hair':1024,'coatfur':1024,'jacketfur':1024,'cyberware':2048,'ga_cyber':2048}
 def to_tga(im,nm):
@@ -134,9 +135,16 @@ NORMALS={  # extra normal maps where they carry the look
  'arms':'/home/claude/work/tex/base/a0_000_ma_base__hq_nd01.png',
  'facecw_face':'/home/claude/work/tex/base/hx_cyberware_13_m02.png','facecw_nose':'/home/claude/work/tex/base/hx_cyberware_13_d02.png'}
 CAP=None
+VN=list(RT.vn); VP=list(RT.vp); NLX=list(RT.NL); JIGGLE={}   # extra procedural bones (jigglebones) appended after the Valve skeleton
+def add_jiggle_bone(name,parent,pivot,length):
+    W=RT.NW[RT.vn.index(parent)]; x=np.array([0,0,-1.0]); y=np.array([1.0,0,0]); z=np.cross(x,y)
+    E=np.eye(4); E[:3,0]=x; E[:3,1]=y; E[:3,2]=z; E[:3,3]=pivot
+    VN.append(name); VP.append(RT.vn.index(parent)); NLX.append(np.linalg.inv(W)@E); JIGGLE[name]=length
+    return len(VN)-1
+STAGED_MATS=pickle.load(open('/home/claude/work/token/staged_mats.pkl','rb')) if os.path.exists('/home/claude/work/token/staged_mats.pkl') else {}
 DERIVED_NORMAL={'hair':12.0,'hatfur':6.0,'haircap':8.0}
 # name -> [(offset mm, alphatest ref or None = same material)]
-SHELLS={'facecw_face':[(0.4*k,None) for k in range(1,7)],'facecw_nose':[(0.4*k,None) for k in range(1,7)],
+SHELLS={'facecw_face':[(0.2*k,None) for k in range(1,13)],'facecw_nose':[(0.2*k,None) for k in range(1,13)],
         'brows':[(0.3,0.36),(0.6,0.44),(0.9,0.52),(1.2,0.6),(1.5,0.68)]}
 def tuck_under_cap(vp,inset=0.2):
     """neck cyberware pieces that rise onto the back of the skull: pull them just under the hair cap so the locs lie over them"""
@@ -152,7 +160,12 @@ def main():
     byname={}
     for p in P: byname.setdefault(p['name'],[]).append(p)
     texdone=set(); report={}; plan={}
+    NDONE=set(); texdone_n=lambda nm: nm in NDONE
     global CAP
+    if 'earring' in byname and 'token_earring' not in VN:
+        p=byname['earring'][0]; q=head_skin(p['pos'].astype(np.float64),np.tile([0,0,1.0],(len(p['pos']),1)))[0]
+        q=q[np.unique(p['idx'])]; top=q[q[:,2]>=np.percentile(q[:,2],97)].mean(0); L=float(top[2]-q[:,2].min())
+        add_jiggle_bone('token_earring','ValveBiped.Bip01_Head1',top,L); print('   earring jigglebone pivot',top.round(2),'length %.2f in'%L)
     if 'haircap' in byname:
         CAP=np.concatenate([head_skin(p['pos'].astype(np.float64),np.tile([0,0,1.0],(len(p['pos']),1)))[0] for p in byname['haircap']])
     NL=RT.NL
@@ -185,22 +198,32 @@ def main():
             a=np.asarray(im.convert('RGBA')).astype(np.float32); H,W=a.shape[:2]; yy,xx=np.mgrid[0:H,0:W]
             r=np.hypot(xx/W-0.5,yy/H-0.46); rgb=a[...,:3]; sat=(rgb.max(2)-rgb.min(2))/np.maximum(rgb.max(2),1); lum=rgb.mean(2)/255
             m=((r<0.205)*np.clip((lum-0.35)*2.5,0,1)+(r<0.32)*(r>0.205)*(sat>0.45)*(lum>0.35)*0.8)
+            a[...,:3]*=np.where(r>0.215,0.62,1.0)[...,None]   # sclera: no eye AO/lid shadow in Source, so pre-shade it
             a[...,3]=np.clip(m,0,1)*255; im=Image.fromarray(a.astype(np.uint8),'RGBA')
             im.save(KIT+'materialsrc/%s_%s.tga'%(NAME,nm)); open(KIT+'materialsrc/%s_%s.txt'%(NAME,nm),'w').write('nocompress 0\n')
             open(KIT+'materials/%s_%s.vmt'%(NAME,nm),'w',newline='\r\n').write('"VertexLitGeneric"\n{\n "$basetexture" "%s/%s_%s"\n%s}\n'%(MATDIR,NAME,nm,EYES)); return
         has_a=np.asarray(im)[...,3].min()<250
         if c not in ('cards','decal','glass') and not has_a: im=im.convert('RGB')
         im.save(KIT+'materialsrc/%s_%s.tga'%(NAME,nm)); open(KIT+'materialsrc/%s_%s.txt'%(NAME,nm),'w').write('nocompress 0\n')
-        A=''
+        A=''; HASN=False
         if nm in DERIVED_NORMAL:   # strand-level relief from the albedo itself (breaks the smooth 'plastic' look of hair geometry)
             g=np.asarray(im.convert('L').resize((1024,1024),Image.LANCZOS)).astype(np.float32)/255*DERIVED_NORMAL[nm]
             gx=np.roll(g,-1,1)-np.roll(g,1,1); gy=np.roll(g,-1,0)-np.roll(g,1,0); n=np.dstack([-gx,-gy,np.ones_like(g)]); n/=np.linalg.norm(n,axis=2,keepdims=True)
             Image.fromarray(((n*0.5+0.5)*255).astype(np.uint8)).save(KIT+'materialsrc/%s_%s_n.tga'%(NAME,nm)); open(KIT+'materialsrc/%s_%s_n.txt'%(NAME,nm),'w').write('nocompress 0\nnormal 1\n')
+        elif nm in STAGED_MATS and STAGED_MATS[nm].get('normal') is not None and nm not in DERIVED_NORMAL and nm not in ('facecw_face','facecw_nose'):
+            # the staging material's own normal map (CP garment normal + layer detail), gloss mask in alpha = Source phong mask
+            sm=STAGED_MATS[nm]; n=sm['normal'].convert('RGB').resize((2048,2048) if nm in TEXCAP and TEXCAP[nm]>=2048 else (1024,1024),Image.LANCZOS)
+            if sm.get('mr') is not None: rough=np.asarray(sm['mr'].convert('RGB').resize(n.size,Image.LANCZOS)).astype(np.float32)[...,1]/255
+            else: rough=np.full(n.size[::-1],float(sm.get('rough') or 0.6),np.float32)
+            gloss=np.clip((1-rough)*1.3,0,1)**1.5; n=n.convert('RGBA'); n.putalpha(Image.fromarray((gloss*255).astype(np.uint8)))
+            n.save(KIT+'materialsrc/%s_%s_n.tga'%(NAME,nm)); open(KIT+'materialsrc/%s_%s_n.txt'%(NAME,nm),'w').write('nocompress 0\nnormal 1\n'); NDONE.add(nm)
         elif nm in NORMALS and os.path.exists(NORMALS[nm]):
             nrm_rgb(NORMALS[nm],size=(1024,1024)).save(KIT+'materialsrc/%s_%s_n.tga'%(NAME,nm)); open(KIT+'materialsrc/%s_%s_n.txt'%(NAME,nm),'w').write('nocompress 0\nnormal 1\n')
         elif c in ('skin_head','skin_body','skin_arms'): c='cloth'
         if c in ('metal','cloth') and has_a: A=' "$alphatest" "1"\n "$alphatestreference" "0.45"\n'
-        body=VMT_OVERRIDE.get(nm,VMTX[c]).replace('{A}',A).replace('{D}',MATDIR).replace('{M}','%s_%s'%(NAME,nm))
+        body=VMT_OVERRIDE.get(nm,VMTX[c])
+        if os.path.exists(KIT+'materialsrc/%s_%s_n.tga'%(NAME,nm)) and '$bumpmap' not in body and texdone_n(nm): body=' "$bumpmap" "{D}/{M}_n"\n'+body
+        body=body.replace('{A}',A).replace('{D}',MATDIR).replace('{M}','%s_%s'%(NAME,nm))
         open(KIT+'materials/%s_%s.vmt'%(NAME,nm),'w',newline='\r\n').write('"VertexLitGeneric"\n{\n "$basetexture" "%s/%s_%s"\n%s}\n'%(MATDIR,NAME,nm,body))
     def tris_of(names,chunks=None):
         T=[]
@@ -214,13 +237,15 @@ def main():
                     for k in range(3): np.add.at(nrm,F[:,k],fn)
                 nrm=np.asarray(nrm)[:,:3].astype(np.float64); nrm/=np.maximum(np.linalg.norm(nrm,axis=1,keepdims=True),1e-9)
                 used=np.unique(F); remap=-np.ones(len(pos),int); remap[used]=np.arange(len(used))
-                if nm in HEADLIKE: vp,vn_,lk=head_skin(pos[used],nrm[used])
+                if nm in HEADLIKE or nm=='earring': vp,vn_,lk=head_skin(pos[used],nrm[used])   # earring: one rigid move with the head (no per-vertex bone mixing)
                 else: vp,vn_,lk=RT.retarget(pos[used],nrm[used],np.asarray(p['ji'])[used],np.asarray(p['jw'])[used],p['bones'],p['bonepos'])
                 if nm in RIGID: lk=[[(RT.vn.index(RIGID[nm]),1.0)]]*len(vp)      # jewelry moves as one piece
+                if nm in RIGID_EXTRA and RIGID_EXTRA[nm] in VN: lk=[[(VN.index(RIGID_EXTRA[nm]),1.0)]]*len(vp)   # dangles from its jigglebone
                 if nm in HEADLIKE and cls(nm)!='cards':   # some CP head-family meshes carry inward normals: make them face out of the skull
                     hc=RT.NW[RT.vn.index('ValveBiped.Bip01_Head1')][:3,3]+np.array([1.5,0,3.5])
                     if ((vp-hc)*vn_).sum(1).mean()<0: vn_=-vn_
                 if nm=='cyberware' and CAP is not None: vp=tuck_under_cap(vp)
+                if nm=='eyes': vp=vp-np.array([0.025,0,0])   # seat the eyeballs ~0.6 mm deeper so the lids close over them
                 Fi=remap[F].copy(); a,b,c=vp[Fi[:,0]],vp[Fi[:,1]],vp[Fi[:,2]]
                 bad=(np.cross(b-a,c-a)*vn_[Fi].sum(1)).sum(1)<0; Fi[bad]=Fi[bad][:,[0,2,1]]; flip=False   # each triangle faces the way its normals point (Source culls back faces)
                 emit_mat(nm,p)
@@ -235,29 +260,32 @@ def main():
                         mat='%s_%s'%(NAME,nm) if ref is None else '%s_%s_L%d'%(NAME,nm,k)
                         if ref is not None and mat not in texdone:
                             texdone.add(mat)
-                            open(KIT+'materials/%s.vmt'%mat,'w',newline='\r\n').write('"VertexLitGeneric"\n{\n "$basetexture" "%s/%s_%s"\n%s}\n'%(MATDIR,NAME,nm,VMT_OVERRIDE[nm].replace('"0.4"','"%.2f"'%ref)))
+                            open(KIT+'materials/%s.vmt'%mat,'w',newline='\r\n').write('"VertexLitGeneric"\n{\n "$basetexture" "%s/%s_%s"\n%s}\n'%(MATDIR,NAME,nm,VMT_OVERRIDE[nm].replace('"0.4"','"%.2f"'%ref).replace('{D}',MATDIR).replace('{M}','%s_%s'%(NAME,nm)).replace('{A}','')))
                         T+=smd.part_tris(vp+up*off_mm/25.4,vn_,p['uv'][used],Fi.ravel(),lk,mat,flip=flip)
         return T
     for model,groups in LAYOUT.items():
         qc=['$modelname "player/%s/%s.mdl"'%(NAME,model),'$cdmaterials "%s/"'%MATDIR,'$surfaceprop "flesh"','$model "%s_bind" "%s_bind.smd"'%(model,model)]
         allt=[]; mats=set(); groupsout={}
-        smd.write(KIT+'modelsrc/%s_bind.smd'%model,RT.vn,RT.vp,NL,[])
+        smd.write(KIT+'modelsrc/%s_bind.smd'%model,VN,VP,NLX,[])
         if model==BODY_MODEL:   # body skin regions: each its own toggle (hide skin under clothes)
             for r,ch in BODY_REGIONS.items():
-                T=tris_of(['body'],chunks=ch); fn='%s_skin_%s.smd'%(model,r); smd.write(KIT+'modelsrc/'+fn,RT.vn,RT.vp,NL,T); allt+=T; mats.update(m for m,_ in T)
+                T=tris_of(['body'],chunks=ch); fn='%s_skin_%s.smd'%(model,r); smd.write(KIT+'modelsrc/'+fn,VN,VP,NLX,T); allt+=T; mats.update(m for m,_ in T)
                 qc.append('$bodygroup "skin_%s"\n{\n studio "%s"\n blank\n}'%(r,fn)); groupsout['skin_'+r]=['on','off']
         for g,opts in groups.items():
             lines=[]; names=[]
             if g not in DEFAULT_ON: lines.append(' blank'); names.append('none')
             for o,parts in opts.items():
                 T=tris_of(parts); allt+=T
-                fn='%s_%s_%s.smd'%(model,g,o); smd.write(KIT+'modelsrc/'+fn,RT.vn,RT.vp,NL,T)
+                fn='%s_%s_%s.smd'%(model,g,o); smd.write(KIT+'modelsrc/'+fn,VN,VP,NLX,T)
                 lines.append(' studio "%s"'%fn); names.append(o)
                 for m,_ in T: mats.add(m)
             if g in DEFAULT_ON: lines.append(' blank'); names.append('none')
             qc.append('$bodygroup "%s"\n{\n%s\n}'%(g,'\n'.join(lines))); groupsout[g]=names
         if model==BODY_MODEL:
-            smd.write(KIT+'modelsrc/%s_phys.smd'%model,RT.vn,RT.vp,NL,phys_tris([t for t in allt if t[0].endswith(('_body','_skin','_arms'))]))
+            smd.write(KIT+'modelsrc/%s_phys.smd'%model,VN,VP,NLX,phys_tris([t for t in allt if t[0].endswith(('_body','_skin','_arms'))]))
+        for jb,L in JIGGLE.items():
+            if any(jb in str(t) for t in []) or ('earring' in str([g for g in groups]) or any('earring' in str(o) for o in groups.values())):
+                qc.append('$jigglebone "%s"\n{\n is_flexible\n {\n  length %.2f\n  tip_mass 0\n  pitch_stiffness 60\n  pitch_damping 5\n  yaw_stiffness 60\n  yaw_damping 5\n  along_stiffness 100\n  along_damping 0\n  angle_constraint 35\n }\n}'%(jb,max(L,0.5)))
         qc.append('$sequence "idle" "%s_bind.smd" fps 1'%model)
         open(KIT+'modelsrc/%s.qc'%model,'w',newline='\r\n').write('\n'.join(qc)+'\n')
         plan[model]=dict(bodygroups=groupsout,materials=sorted(mats),tris=len(allt))
