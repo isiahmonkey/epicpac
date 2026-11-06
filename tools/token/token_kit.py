@@ -13,7 +13,7 @@ import retarget as RT, smd, qem, xbm, garments
 from kit import nrm_rgb, phys_tris
 NAME='token'; MATDIR='models/player/'+NAME
 KIT='/mnt/user-data/outputs/token_kit/'
-P=pickle.load(open('/home/claude/work/token/staged_parts.pkl','rb'))
+P=pickle.load(open(os.environ.get('STAGED','/home/claude/work/token/staged_parts.pkl'),'rb'))
 
 # ---------------- what goes where ----------------
 BODY_REGIONS={'torso':[0,2],'collar':[1],'pelvis':[3],'thighs':[4],'calves':[5,6],'feet':[7]}
@@ -45,11 +45,12 @@ LAYOUT={
    'wrist_left':{'nd_cross_bracelet':['nd_acc']},
  },
 }
+BODY_MODEL='token_body'; KITZIP='token_kit.zip'; PACZIP='token_pac3.zip'; BATNAME='compile_token.bat'
 DEFAULT_ON={'head','arms','neck_cyberware','head_hair','face_cyberware','face_piercings','face_decal','ear_left','ear_right'}   # groups without a 'blank' at index 0
 
 # ---------------- budget: Gmod-friendly triangle counts ----------------
 DECIMATE={'ga_cyber':0.24,'jeans':0.28,'cyberware':0.40,'jacketcap':0.35,'coatcap':0.35,'bolero_ml':0.6,'den_boots':0.45,'syn_pants':0.7,'den_hoodie':0.8,'den_pants':0.8,'mis_tank':0.8,'maine':0.35,'earcyber':0.7,'ga_fingers':0.6}
-CARDS={'hatfur':0.5,'jacketfur':0.45,'coatfur':0.38,'jacketfrizz':0.3,'coatfrizz':0.3,'hair':0.6}
+CARDS={'hatfur':1.0,'jacketfur':0.45,'coatfur':0.38,'jacketfrizz':0.3,'coatfrizz':0.3,'hair':0.6}
 NOLOCK={'cyberware','maine','ga_cyber'}   # hard-surface / decal: open edges are panel borders, not UV seams that matter   # keep this fraction of whole hair/fur cards
 def boundary_lock(F,n):
     from collections import Counter
@@ -164,7 +165,7 @@ def main():
         qc=['$modelname "player/%s/%s.mdl"'%(NAME,model),'$cdmaterials "%s/"'%MATDIR,'$surfaceprop "flesh"','$model "%s_bind" "%s_bind.smd"'%(model,model)]
         allt=[]; mats=set(); groupsout={}
         smd.write(KIT+'modelsrc/%s_bind.smd'%model,RT.vn,RT.vp,NL,[])
-        if model=='token_body':   # body skin regions: each its own toggle (hide skin under clothes)
+        if model==BODY_MODEL:   # body skin regions: each its own toggle (hide skin under clothes)
             for r,ch in BODY_REGIONS.items():
                 T=tris_of(['body'],chunks=ch); fn='%s_skin_%s.smd'%(model,r); smd.write(KIT+'modelsrc/'+fn,RT.vn,RT.vp,NL,T); allt+=T
                 qc.append('$bodygroup "skin_%s"\n{\n studio "%s"\n blank\n}'%(r,fn)); groupsout['skin_'+r]=['on','off']
@@ -178,17 +179,17 @@ def main():
                 for m,_ in T: mats.add(m)
             if g in DEFAULT_ON: lines.append(' blank'); names.append('none')
             qc.append('$bodygroup "%s"\n{\n%s\n}'%(g,'\n'.join(lines))); groupsout[g]=names
-        if model=='token_body':
+        if model==BODY_MODEL:
             smd.write(KIT+'modelsrc/token_phys.smd',RT.vn,RT.vp,NL,phys_tris([t for t in allt if t[0].endswith(('_body','_skin','_arms'))]))
         qc.append('$sequence "idle" "%s_bind.smd" fps 1'%model)
         open(KIT+'modelsrc/%s.qc'%model,'w',newline='\r\n').write('\n'.join(qc)+'\n')
         plan[model]=dict(bodygroups=groupsout,materials=sorted(mats),tris=len(allt))
         print(model,'tris',len(allt),'materials',len(mats))
     json.dump(dict(plan=plan,tris_per_piece=report),open(KIT+'token_plan.json','w'),indent=1)
-    open(KIT+'compile_token.bat','w',newline='\r\n').write(bat(plan))
+    open(KIT+BATNAME,'w',newline='\r\n').write(bat(plan))
     return plan
 def bat(plan):
-    s=r'''@echo off
+    s=(r'''@echo off
 setlocal
 rem ==== Token -> GMod one-click compile (bodygroup models for PAC3) ====
 set GMOD=C:\Program Files (x86)\Steam\steamapps\common\GarrysMod
@@ -210,7 +211,7 @@ if not exist "%MD%" mkdir "%MD%"
 xcopy /y /q "%KIT%materials\*.vmt" "%MD%\" >nul
 echo [3/4] Compiling models...
 if exist "%KIT%studiomdl_log.txt" del "%KIT%studiomdl_log.txt"
-'''
+''').replace('token_kit.zip',KITZIP)
     for m in plan: s+='echo    %s\n"%%GMOD%%\\bin\\studiomdl.exe" -nop4 -game "%%GAME%%" "%%KIT%%modelsrc\\%s.qc" >> "%%KIT%%studiomdl_log.txt" 2>&1\n'%(m,m)
     s+='findstr /i /c:"ERROR" /c:"too many" "%KIT%studiomdl_log.txt"\necho [4/4] Collecting PAC3 files...\nset OUT=%KIT%pac3\nif exist "%OUT%" rmdir /s /q "%OUT%"\nmkdir "%OUT%"\n'
     for m,info in plan.items():
@@ -218,6 +219,6 @@ if exist "%KIT%studiomdl_log.txt" del "%KIT%studiomdl_log.txt"
         for ext in ('mdl','vvd','dx90.vtx','phy'): s+='if exist "%%MO%%\\%s.%s" copy /y "%%MO%%\\%s.%s" "%%OUT%%\\%s\\" >nul\n'%(m,ext,m,ext,m)
         for mt in info['materials']:
             s+='copy /y "%%MD%%\\%s.vmt" "%%OUT%%\\%s\\" >nul\nif exist "%%MD%%\\%s.vtf" copy /y "%%MD%%\\%s.vtf" "%%OUT%%\\%s\\" >nul\nif exist "%%MD%%\\%s_n.vtf" copy /y "%%MD%%\\%s_n.vtf" "%%OUT%%\\%s\\" >nul\n'%(mt,m,mt,mt,m,mt,mt,m)
-    s+='if exist "%KIT%token_pac3.zip" del "%KIT%token_pac3.zip"\npowershell -NoProfile -Command "Compress-Archive -Path \'%OUT%\\*\' -DestinationPath \'%KIT%token_pac3.zip\'"\necho Done. Log: %KIT%studiomdl_log.txt  -  tell Claude when finished.\npause\n'
+    s+=('if exist "%KIT%token_pac3.zip" del "%KIT%token_pac3.zip"\npowershell -NoProfile -Command "Compress-Archive -Path \'%OUT%\\*\' -DestinationPath \'%KIT%token_pac3.zip\'"\n').replace('token_pac3.zip',PACZIP)+'echo Done. Log: %KIT%studiomdl_log.txt  -  tell Claude when finished.\npause\n'
     return s
 if __name__=='__main__': main()

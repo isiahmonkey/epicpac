@@ -62,4 +62,4 @@ bad=[(p['name'],int((p['ji']>=len(p['bones'])).sum())) for p in sk if (p['ji']>=
 print('index>=bones (source):',bad[:8])
 out=[p for p in out if p['name']!='_donor_head']
 print('parts',len(out),'skinned from source',len(sk),'derived (nearest-weights)',len(miss),sorted({p['name'] for p in miss}))
-pickle.dump([{k:v for k,v in p.items() if k not in ('tex',)} | {'tex':p.get('tex')} for p in out],open('/home/claude/work/token/staged_parts.pkl','wb'))
+pickle.dump([{k:v for k,v in p.items() if k not in ('tex',)} | {'tex':p.get('tex')} for p in out],open(os.environ.get('STAGED','/home/claude/work/token/staged_parts.pkl'),'wb'))

@@ -31,3 +31,7 @@ Every separate clothing / accessory piece is its own **bodygroup**: one submodel
 - Friend-supplied mod files are never hosted publicly (standing rule).
 - 2026-11-06 decision: unused outfit options move into their **own outfit PACs**. Each outfit PAC ships only the items that set wears, which keeps each download small.
 - Animations (e.g. the drinking animation with props B4/G1) are **duplicated into every outfit repo** that uses them, so each repo is self-contained.
+
+## Outfit PACs
+- Every outfit includes the base body (head, Gorilla arms, Keelan locs, all cyberware, face, ears) **plus the fur hat**.
+- outfit1: Misfits tank, Edgerunner denim pants (PinkyDude Denim Edgerunner), vinyl platforms (black), silver wallet chain, Valentino silver necklace. Build: `tools/token/outfit.py outfit1`. The necklace is re-fitted per outfit (stage_skin with only that outfit's clothes), so it rests on what that outfit actually wears.

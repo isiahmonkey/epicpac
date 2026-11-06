@@ -2,7 +2,7 @@
 import sys,os,numpy as np; sys.path[:0]=['/home/claude/work/pbr']
 import glb
 from PIL import Image
-K='/mnt/user-data/outputs/token_kit/'
+import os; K=os.environ.get('KITDIR','/mnt/user-data/outputs/token_kit/')
 def read_smd(p):
     L=open(p).read().split('\n'); i=L.index('triangles') if 'triangles' in L else None; out={}
     if i is None: return out
