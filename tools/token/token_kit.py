@@ -48,14 +48,21 @@ LAYOUT={
 FLATTEN={'bolero_ml':0.15,'bolerocuff_ml':0.15}
 LEATHER=' "$halflambert" "1"\n "$phong" "1"\n "$phongexponent" "28"\n "$phongboost" "1.6"\n "$phongfresnelranges" "[0.3 0.6 1]"\n{A}'
 SILVER=' "$envmap" "env_cubemap"\n "$envmaptint" "[.85 .85 .88]"\n "$envmapcontrast" "1"\n "$phong" "1"\n "$phongexponent" "70"\n "$phongboost" "6"\n "$phongalbedotint" "1"\n "$phongfresnelranges" "[1 1 1]"\n "$halflambert" "1"\n{A}'
-VMT_OVERRIDE={'bolero_ml':LEATHER,'bolerocuff_ml':LEATHER,'chain_silver':SILVER,'earring':SILVER,'nd_acc':SILVER,'vchain':SILVER,'vcross':SILVER}
-DARKEN={'chain_silver':0.38,'earring':0.38,'nd_acc':0.38,'vchain':0.38,'vcross':0.38}   # polished metal: dark diffuse, the shine comes from the cubemap
+BLACKMETAL=' "$envmap" "env_cubemap"\n "$envmaptint" "[.07 .07 .075]"\n "$phong" "1"\n "$phongexponent" "35"\n "$phongboost" "2.5"\n "$phongfresnelranges" "[0.4 0.8 1]"\n "$halflambert" "1"\n{A}'
+BLACKMETAL_N=' "$bumpmap" "{D}/{M}_n"\n'+BLACKMETAL
+CARDS_DARK=' "$alphatest" "1"\n "$alphatestreference" "0.4"\n "$allowalphatocoverage" "1"\n "$nocull" "1"\n "$phong" "1"\n "$phongexponent" "10"\n "$phongboost" "0.12"\n'
+EYES=' "$selfillum" "1"\n "$selfillumtint" "[2.2 2.2 2.2]"\n "$phong" "1"\n "$phongexponent" "60"\n "$phongboost" "1"\n'
+VMT_OVERRIDE={'cyberware':BLACKMETAL,'ga_cyber':BLACKMETAL,'ga_fingers':BLACKMETAL,'ga_end':BLACKMETAL,'earcyber':BLACKMETAL,'piercing':BLACKMETAL,
+ 'facecw_face':BLACKMETAL_N,'facecw_nose':BLACKMETAL_N,'eyes':EYES,
+ 'hair':CARDS_DARK,'hatfur':CARDS_DARK,'brows':CARDS_DARK,'brows_s7':CARDS_DARK,'brows_s14':CARDS_DARK,'lashes':CARDS_DARK,
+ 'haircap':CARDS_DARK.replace('"0.4"','"0.12"'),'bolero_ml':LEATHER,'bolerocuff_ml':LEATHER,'chain_silver':SILVER,'earring':SILVER,'nd_acc':SILVER,'vchain':SILVER,'vcross':SILVER}
+DARKEN={'hair':0.55,'hatfur':0.5,'haircap':0.6,'brows':0.6,'brows_s7':0.6,'brows_s14':0.6,'chain_silver':0.38,'earring':0.38,'nd_acc':0.38,'vchain':0.38,'vcross':0.38}   # polished metal: dark diffuse, the shine comes from the cubemap
 BODY_MODEL='token_body'; KEEP=False; KITZIP='token_kit.zip'; PACZIP='token_pac3.zip'; BATNAME='compile_token.bat'
 DEFAULT_ON={'head','arms','neck_cyberware','head_hair','face_cyberware','face_piercings','face_decal','ear_left','ear_right'}   # groups without a 'blank' at index 0
 
 # ---------------- budget: Gmod-friendly triangle counts ----------------
 DECIMATE={'ga_cyber':0.24,'jeans':0.28,'cyberware':0.40,'jacketcap':0.35,'coatcap':0.35,'bolero_ml':0.6,'den_boots':0.45,'syn_pants':0.7,'den_hoodie':0.8,'den_pants':0.8,'mis_tank':0.8,'maine':0.35,'earcyber':0.7,'ga_fingers':0.6}
-CARDS={'hatfur':1.0,'jacketfur':0.45,'coatfur':0.38,'jacketfrizz':0.3,'coatfrizz':0.3,'hair':0.6}
+CARDS={'hatfur':1.0,'jacketfur':0.45,'coatfur':0.38,'jacketfrizz':0.3,'coatfrizz':0.3,'hair':1.0}
 NOLOCK={'cyberware','maine','ga_cyber'}   # hard-surface / decal: open edges are panel borders, not UV seams that matter   # keep this fraction of whole hair/fur cards
 def boundary_lock(F,n):
     from collections import Counter
@@ -122,13 +129,26 @@ def to_tga(im,nm):
 NORMALS={  # extra normal maps where they carry the look
  'skin':'/home/claude/work/build/../tex/base/h0_000_pma_c__basehead_n01.png',
  'body':'/home/claude/work/tex/base/t0_000_ma__c_base_n03_censored.png',
- 'arms':'/home/claude/work/tex/base/a0_000_ma_base__hq_nd01.png'}
+ 'arms':'/home/claude/work/tex/base/a0_000_ma_base__hq_nd01.png',
+ 'facecw_face':'/home/claude/work/tex/base/hx_cyberware_13_m02.png','facecw_nose':'/home/claude/work/tex/base/hx_cyberware_13_d02.png'}
+CAP=None
+def tuck_under_cap(vp,inset=0.2):
+    """neck cyberware pieces that rise onto the back of the skull: pull them just under the hair cap so the locs lie over them"""
+    from scipy.spatial import cKDTree
+    hc=RT.NW[RT.vn.index('ValveBiped.Bip01_Head1')][:3,3]+np.array([0.0,0,2.5])
+    cd=CAP-hc; cr=np.linalg.norm(cd,axis=1); cu=cd/cr[:,None]; tree=cKDTree(cu)
+    d=vp-hc; r=np.linalg.norm(d,axis=1); u=d/np.maximum(r,1e-6)[:,None]
+    dist,j=tree.query(u); inside=dist<0.06; lim=cr[j]-inset; m=inside&(r>lim)
+    out=vp.copy(); out[m]=hc+u[m]*lim[m][:,None]; print('   cyberware verts tucked under hair cap:',int(m.sum())); return out
 def main():
     if os.path.exists(KIT) and not KEEP: shutil.rmtree(KIT)
     for d in ('modelsrc','materialsrc','materials'): os.makedirs(KIT+d,exist_ok=True)
     byname={}
     for p in P: byname.setdefault(p['name'],[]).append(p)
     texdone=set(); report={}; plan={}
+    global CAP
+    if 'haircap' in byname:
+        CAP=np.concatenate([head_skin(p['pos'].astype(np.float64),np.tile([0,0,1.0],(len(p['pos']),1)))[0] for p in byname['haircap']])
     NL=RT.NL
     def emit_mat(nm,p):
         if nm in texdone: return
@@ -142,6 +162,13 @@ def main():
             a[...,:3]=base+(a[...,:3]-base)*FLATTEN[nm]; im=Image.fromarray(np.clip(a,0,255).astype(np.uint8),im.mode)
         if nm in DARKEN:
             a=np.asarray(im).astype(np.float32); a[...,:3]*=DARKEN[nm]; im=Image.fromarray(np.clip(a,0,255).astype(np.uint8),im.mode)
+        if nm=='eyes':
+            a=np.asarray(im.convert('RGBA')).astype(np.float32); H,W=a.shape[:2]; yy,xx=np.mgrid[0:H,0:W]
+            r=np.hypot(xx/W-0.5,yy/H-0.46); rgb=a[...,:3]; sat=(rgb.max(2)-rgb.min(2))/np.maximum(rgb.max(2),1); lum=rgb.mean(2)/255
+            m=((r<0.205)*np.clip((lum-0.35)*2.5,0,1)+(r<0.32)*(r>0.205)*(sat>0.45)*(lum>0.35)*0.8)
+            a[...,3]=np.clip(m,0,1)*255; im=Image.fromarray(a.astype(np.uint8),'RGBA')
+            im.save(KIT+'materialsrc/%s_%s.tga'%(NAME,nm)); open(KIT+'materialsrc/%s_%s.txt'%(NAME,nm),'w').write('nocompress 0\n')
+            open(KIT+'materials/%s_%s.vmt'%(NAME,nm),'w',newline='\r\n').write('"VertexLitGeneric"\n{\n "$basetexture" "%s/%s_%s"\n%s}\n'%(MATDIR,NAME,nm,EYES)); return
         has_a=np.asarray(im)[...,3].min()<250
         if c not in ('cards','decal','glass') and not has_a: im=im.convert('RGB')
         im.save(KIT+'materialsrc/%s_%s.tga'%(NAME,nm)); open(KIT+'materialsrc/%s_%s.txt'%(NAME,nm),'w').write('nocompress 0\n')
@@ -170,7 +197,9 @@ def main():
                 if nm in HEADLIKE and cls(nm)!='cards':   # some CP head-family meshes carry inward normals: make them face out of the skull
                     hc=RT.NW[RT.vn.index('ValveBiped.Bip01_Head1')][:3,3]+np.array([1.5,0,3.5])
                     if ((vp-hc)*vn_).sum(1).mean()<0: vn_=-vn_
-                Fi=remap[F]; a,b,c=vp[Fi[:,0]],vp[Fi[:,1]],vp[Fi[:,2]]; flip=((np.cross(b-a,c-a)*vn_[Fi].sum(1)).sum(1)>0).mean()<0.5
+                if nm=='cyberware' and CAP is not None: vp=tuck_under_cap(vp)
+                Fi=remap[F].copy(); a,b,c=vp[Fi[:,0]],vp[Fi[:,1]],vp[Fi[:,2]]
+                bad=(np.cross(b-a,c-a)*vn_[Fi].sum(1)).sum(1)<0; Fi[bad]=Fi[bad][:,[0,2,1]]; flip=False   # each triangle faces the way its normals point (Source culls back faces)
                 emit_mat(nm,p)
                 T+=smd.part_tris(vp,vn_,p['uv'][used],Fi.ravel(),lk,'%s_%s'%(NAME,nm),flip=flip)
         return T
