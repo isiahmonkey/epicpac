@@ -30,12 +30,17 @@ void main(){
    // Kajiya-Kay strand shading: tangent runs along the card's V (root->tip); normal = outward from the head volume
    vec3 n0=normalize(wn); mat3 F=tbn(n0); vec3 Tr=F[1]; float tl=length(Tr); vec3 T= (tl>1e-4 && tl<1e4) ? Tr/tl : normalize(cross(n0,vec3(0.,1.,0.))+vec3(1e-3));
   /* degenerate UV cards: fallback tangent */
+  if(hair>2.5){ /* frizzy garment fur: per-strand tangent scatter */
+    float hs=fract(sin(floor(uv.x*700.)*12.9898+floor(uv.y*40.)*78.233)*43758.5453);
+    float hs2=fract(hs*91.7); T=normalize(T+ (hs-0.5)*1.4*F[0] + (hs2-0.5)*1.0*n0); }
   vec3 Nh= hair>1.5 ? n0*sign(dot(n0,cam-wp)) : normalize(mix(normalize(wp-hc),n0*sign(dot(n0,cam-wp)),0.25));   // hair=2: garment fur, use authored normal
    vec3 v=normalize(cam-wp); vec3 col=vec3(0); float sd=shadow();
    for(int i=0;i<4;i++){ vec3 l=normalize(Ld[i]); vec3 h=normalize(l+v); float s= i==0 ? mix(0.35,1.,sd) : 1.;
      float dTL=dot(T,l); float kd=sqrt(max(1.-dTL*dTL,0.)); float wrap=max((dot(Nh,l)+0.5)/1.5,0.);
      float th=dot(T,h); float s1=pow(sqrt(max(1.-th*th,0.)),90.); float th2=dot(normalize(T+Nh*0.12),h); float s2=pow(sqrt(max(1.-th2*th2,0.)),18.);
-     col+=Lc[i]*s*(bc.rgb*mix(1.,kd,0.4)*wrap*0.33 + vec3(0.025)*s1*wrap + bc.rgb*0.08*s2*wrap); }
+     float sw= hair>2.5 ? 0.25 : 1.;   /* frizz: weak, scattered highlight instead of a glossy band */
+     col+=Lc[i]*s*(bc.rgb*mix(1.,kd,0.4)*wrap*0.33 + vec3(0.025)*s1*wrap*sw + bc.rgb*0.08*s2*wrap*sw); }
+   if(hair>2.5){ float fz=pow(1.-abs(dot(Nh,v)),2.); col+=bc.rgb*fz*0.35; }   /* fuzz: light caught in the fibre edge (velvet-like) */
    col+=bc.rgb*vec3(.03,.03,.035)*2.;
    col=clamp(col,0.,4.); if(any(isnan(col))) col=bc.rgb*0.05;   // no NaN/firefly sparkles on thin cards
    o=vec4(col, mode==2?bc.a:1.); return; }

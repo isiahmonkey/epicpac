@@ -37,3 +37,11 @@ Source preset: `takemura hades edition.preset` (40 options, resolved against `ma
   - wallet chain (the silver re-finish is ready)
   - hoodie
   - fur hat (`SHOW_HAT=0`)
+- **Fur jacket:** the real black_carbon material.
+  - Strands use the hair profile gradient: near-black roots to warm grey-brown tips.
+  - The under-layer uses the black_carbon cap gradient-map recolour of the t1_104 fur detail texture.
+  - Frizz:
+    - ragged, broken strand tips and per-strand value variation;
+    - a sparse second card layer lifted 3 mm with flyaways at the tips;
+    - scattered, weak highlights plus a fibre-edge fuzz term.
+  - PAC note: the frizz layer adds about 45% more fur-card triangles.

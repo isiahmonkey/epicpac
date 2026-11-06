@@ -244,9 +244,16 @@ if HAT:
     _fla=_hl('textures/hh_short01_alpha01_r.xbm'); _fsz=_fla.shape[::-1]
     HAT_CARDS=hair_cards(_fla,_hl('textures/hh_short01_id01_r.xbm',_fsz),_hl('textures/hh_short01_grad01_r.xbm',_fsz))
     _capm=os.path.exists('/mnt/user-data/uploads/characters/garment/citizen_fashion/torso/t1_104_dress__golden/textures/t1_104_wa_dress__golden_black_carbon__cap.mi')
-    _jc=np.asarray(HAT_CARDS).astype(np.float32); _lum=_jc[...,:3].mean(-1,keepdims=True)
-    _jc[...,:3]=np.clip(_lum*0.45+ _jc[...,:3]*0.15,0,255)          # garment fur: no ashy tips, near-black with value variation only
-    JACKET_CARDS=Image.fromarray(_jc.astype(np.uint8),'RGBA')
+    # garment fur = the real black_carbon profile (near-black roots -> warm grey-brown tips), made frizzy:
+    _jc=np.asarray(HAT_CARDS).astype(np.float32); _H,_W=_jc.shape[:2]; _rng=np.random.default_rng(7)
+    _sn=np.repeat(_rng.random((1,_W)),_H,0); _sn=np.asarray(Image.fromarray((_sn*255).astype(np.uint8)).resize((_W,_H))).astype(np.float32)/255   # per-strand random
+    _v=np.linspace(0,1,_H)[:,None]
+    _brk=(_rng.random((_H//6+1,_W))>0.10).repeat(6,0)[:_H]            # broken / split strands
+    _jc[...,3]*=np.where(_v>0.55,_brk,1)*(0.75+0.25*_sn)                # thinned, ragged tips
+    _jc[...,:3]*=(0.75+0.5*_sn[...,None])                               # strand-to-strand value variation (no uniform sheet)
+    JACKET_CARDS=Image.fromarray(np.clip(_jc,0,255).astype(np.uint8),'RGBA')
+    _fd=os.path.join('/mnt/user-data/uploads/characters/garment/citizen_fashion/torso/t1_104_dress__golden/textures/','t1_104_dress__golden_fur_d02.xbm')
+    JACKET_CAP=hair_cap(np.tile(np.asarray(xbm.load(cr2w.load_loose(_fd)).convert('L')).astype(np.float32)/255,(2,2)),np.ones((1024,1024))) if os.path.exists(_fd) else None   # black_carbon cap = gradient-map recolour of the fur detail
     HAT_CAP=Image.new('RGBA',(64,64),tuple(int(x) for x in _gm[1])+(255,))   # under-fur skin layer: darkest black_carbon cap tone (the t1_104 cap mi is a near-uniform root colour)
     for _k,_s in enumerate(_hat):
         q=warp_from_vanilla(_s['pos'],k=6)
@@ -376,7 +383,13 @@ if OUTFIT and BODY:
             _cc=_cp_.mean(0); _cn_*=np.sign(((_cp_-_cc)*_cn_).sum(1,keepdims=True)+1e-9)                      # outward
             _jsubs[1]=dict(_jsubs[1],nrm=_cn_[cKDTree(_cp_).query(_jsubs[1]['pos'])[1]])                   # fur cards take the smooth under-layer normal
             for _k,_s in enumerate(_jsubs):
-                parts.append(dict(pos=_s['pos'],idx=_s['idx'],uv=_s['uv0'],nrm=_s.get('nrm'),tex=HAT_CAP if _k==0 else JACKET_CARDS,alpha=0 if _k==0 else 2,name='jacketcap' if _k==0 else 'jacketfur'))
+                parts.append(dict(pos=_s['pos'],idx=_s['idx'],uv=_s['uv0'],nrm=_s.get('nrm'),tex=(JACKET_CAP or HAT_CAP) if _k==0 else JACKET_CARDS,alpha=0 if _k==0 else 2,name='jacketcap' if _k==0 else 'jacketfur'))
+            # frizz layer: a second, sparser copy of the fur cards lifted 2-4mm and jittered toward the tips (flyaways, broken silhouette)
+            _s=_jsubs[1]; _r2=np.random.default_rng(11); _uvv=_s['uv0'][:,1]; _tip=(_uvv-_uvv.min())/max(np.ptp(_uvv),1e-6)
+            _jit=_r2.normal(0,1,(len(_s['pos']),3)); _jit=np.asarray(_jit)*(0.0015+0.006*_tip)[:,None]
+            _fz=_s['pos']+_s['nrm'][:,:3]*0.003+_jit
+            _tri=_s['idx'].reshape(-1,3); _keep=_r2.random(len(_tri))<0.45
+            parts.append(dict(pos=_fz.astype(np.float32),idx=_tri[_keep].ravel(),uv=_s['uv0'],nrm=_s['nrm'],tex=JACKET_CARDS,alpha=2,name='jacketfrizz'))
             continue
         if it=='platform':
             _yb=_rd5.Archive('/home/claude/work/new1/src/mods/yusei_short_heeled_boots.archive'); _ybf={f['hash']:f for f in _yb.files}
