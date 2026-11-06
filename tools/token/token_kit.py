@@ -181,6 +181,7 @@ def main():
         texdone.add(nm); c=cls(nm); tex=p.get('tex')
         im=tex if tex is not None else Image.new('RGBA',(8,8),(128,128,128,255))
         if nm in BASE_FROM_STAGING and STAGED_MATS.get(nm,{}).get('base') is not None: im=STAGED_MATS[nm]['base']   # the staging material's own colour (the part's raw tex is the arm skin for Gorilla plates)
+        if nm=='ga_glass': im=Image.new('RGBA',(256,256),(18,18,22,80))   # tinted cyber-glass (the part carried the arm skin texture)
         im=to_tga(im.convert('RGBA'),nm)
         _p2=lambda v:1<<max(2,round(np.log2(v)))
         if im.size!=(_p2(im.size[0]),_p2(im.size[1])): im=im.resize((_p2(im.size[0]),_p2(im.size[1])),Image.LANCZOS)
