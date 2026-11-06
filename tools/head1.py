@@ -156,7 +156,10 @@ def tuck_under(H,P,uv,idx,gap=0.0015,reach=0.012):
     m=(d<reach)&(np.abs(H[:,0])>0.055); hgt=((H[m]-V[i[m]])*N[i[m]]).sum(1)   # height of skin above shell (ear region only)
     mv=hgt>-gap; idxm=np.nonzero(m)[0][mv]
     H=H.copy(); H[idxm]-=N[i[idxm]]*(hgt[mv]+gap)[:,None]; return H,len(idxm)
+EAR_SIDES=os.environ.get('EAR_SIDES','R')            # CP: +X is the character's RIGHT (l_ joints sit at -X)
 for s in EARG['subs']:
+    _t=s['idx'].reshape(-1,3); _cx=s['pos'][_t].mean(1)[:,0]
+    s=dict(s,idx=_t[((_cx>0) if EAR_SIDES=='R' else (_cx<0) if EAR_SIDES=='L' else np.ones(len(_t),bool))].ravel())
     q=warp_from_vanilla(s['pos']); q,_l=float_on(q,hp[0],HM['geo']['subs'][0]['idx'],gap=0.0012)
     hp[0],_n=tuck_under(hp[0],q,s['uv0'],s['idx']); print('ear: skin verts tucked under shell',_n)
     # the Takemura neck piece reaches up behind the ear lobe and pokes through the shell: lift the shell over it
@@ -168,6 +171,29 @@ for s in EARG['subs']:
         hh=((q[_near]-sp)*sn).sum(1); lift=np.clip(0.0008-hh,0,0.006); q[_near]+=sn*lift[:,None]; print('ear: shell verts lifted over neck cyberware',int((lift>0).sum()))
     parts[0]['pos']=hp[0]
     parts.append(dict(pos=q,idx=s['idx'],uv=s['uv0'],tex=EAR_D,alpha=2,name='earcyber'))
+# ---- Hair: Half Bun Dreads (Male V), black_carbon (hair.mt cards + gradient-recoloured cap decal)
+def _hgrad(entries,x):
+    e=sorted([(d.get('value',0.0),np.array([d.get('color',{}).get(k,0) for k in ('Red','Green','Blue')],float)) for d in entries],key=lambda t:t[0])
+    xs=np.array([v for v,_ in e]); cs=np.array([c for _,c in e]); return np.stack([np.interp(x,xs,cs[:,k]) for k in range(3)],-1)
+_HU='/mnt/user-data/uploads/characters/common/hair/'
+_hpb=open(_HU+'textures/hair_profiles/black_carbon.hp','rb').read(); _hpr=cr2w.parse(_hpb); HPROF=cr2w.chunk(_hpb,_hpr,0)[1]
+def _hl(f,size=None):
+    im=xbm.load(cr2w.load_loose(_HU+f)).convert('L'); im=im.resize(size,Image.LANCZOS) if size else im; return np.asarray(im).astype(np.float32)/255
+_ha=_hl('textures/hh_dread01_alpha01_r.xbm'); _sz=_ha.shape[::-1]
+_hi=_hl('textures/hh_dread01_id01_r.xbm',_sz); _hg=_hl('textures/hh_dread01_grad01_r.xbm',_sz)
+# hair.mt: strand colour = ID gradient (per-strand tint) x root-to-tip gradient (profile), both in sRGB
+_hc=_hgrad(HPROF['gradientEntriesID'],_hi)/255*_hgrad(HPROF['gradientEntriesRootToTip'],_hg)
+_hc*=(0.80+0.20*np.clip(_ha*1.4,0,1))[...,None]
+HAIR_CARDS=Image.fromarray(np.dstack([np.clip(_hc,0,255),_ha*255]).astype(np.uint8),'RGBA')
+_cd=_hl('hh_060_wa__voodoo_03/textures/hh_60_wa__voodoo_03_cap_d02.xbm'); _cm=_hl('hh_060_wa__voodoo_03/textures/hh_60_wa__voodoo_03_cap_mask.xbm',_cd.shape[::-1])
+_gm=np.asarray(xbm.load(cr2w.load_loose(_HU+'textures/cap_gradiants/hh_cap_grad__black_carbon.xbm')).convert('RGB')).astype(np.float32)[1]
+_gx=np.clip((_cd*(len(_gm)-1)).astype(int),0,len(_gm)-1)
+HAIR_CAP=Image.fromarray(np.dstack([_gm[_gx],_cm*255]).astype(np.uint8),'RGBA')       # mesh_decal_gradientmap_recolor
+_hgeo=mesh.decode(modres.get('base\\characters\\common\\hair\\hh_060_wa__voodoo_03\\hh_060_ma__voodoo_03.mesh'))
+for _k,_s in enumerate(_hgeo['subs']):
+    q=warp_from_vanilla(_s['pos'],k=6)
+    if _k==1: q,_l=float_on(q,hp[0],HM['geo']['subs'][0]['idx'],gap=0.0005)
+    parts.append(dict(pos=q,idx=_s['idx'],uv=_s['uv0'],tex=HAIR_CARDS if _k==0 else HAIR_CAP,alpha=2,name='hair' if _k==0 else 'haircap'))
 # Takemura neck cyberware: ml_h1_001_ma_cyberware__takemura.mlsetup baked (titanium / cast iron / enamel / red tech plastic)
 CWA=np.asarray(Image.open('/home/claude/work/staging/cw_albedo.png').convert('RGB')).astype(np.float32)
 _met=np.asarray(Image.open('/home/claude/work/staging/cw_metal.png')).astype(np.float32)[...,None]/255
