@@ -47,3 +47,4 @@ Source preset: `takemura hades edition.preset` (40 options, resolved against `ma
   - PAC note: the frizz layer adds about 45% more fur-card triangles.
 - **Accessories:** ND Barbed cross bracelet (silver) on the LEFT wrist (`ACC=cross_bracelet_l`).
 - **Torso:** the fur jacket is hidden (kept). Next up is the Misfits tank: `Tank_Misfits.archive` is a single 600x600 BC7 print decal, Misfits Fiend Skull, that overrides a vanilla texture (hash 0xb2b9add34d408bcc). `collect_misfits.wscript` finds that path and pulls the male tank tops.
+- **Torso:** the Misfits tank. Tank_Misfits.archive overrides Johnny's tank print `t1_090_tank__johnny\textures\fuk_d01.xbm`. The base is `t1_090_pma_tank__johnny.mesh`, 'fuk' appearance, which uses Silverhand's `ml_t1_002` mlsetup and mask: a faded black knit with the lint microblend. The print is a 600x600 BC7 texture, decoded from its sizeInfo.

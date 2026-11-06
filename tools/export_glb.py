@@ -61,6 +61,12 @@ if 'OUTFIT' in globals() and OUTFIT:
             M['syn_pants']=G.material('syn_pants',base=Image.fromarray((SYN['albedo']*255).astype(np.uint8)),normal=glb.cp_normal(_nimg),mr=glb.mr_map(Image.fromarray((SYN['rough']*255).astype(np.uint8)),Image.fromarray((SYN['metal']*255).astype(np.uint8))),ext={'cull':1})
             M['syn_zip']=G.material('syn_zip',base=SYN['zip'],normal=glb.cp_normal(SYN['dec_n']),alpha='BLEND',rough=0.35,metal=0.9,ext={'order':1})
             M['syn_stitch']=G.material('syn_stitch',base=SYN['stitch'],alpha='BLEND',rough=0.8,ext={'order':1})
+        elif it=='misfits':
+            _nx=MIS['nxy']; _gn=np.asarray(MIS['n01'].convert('RGB').resize(_nx.shape[1::-1],Image.BICUBIC)).astype(np.float32)[...,:2]/127.5-1
+            _xy=np.clip(_gn+_nx,-0.95,0.95); _ni=Image.fromarray(((np.dstack([_xy,np.zeros(_xy.shape[:2])])+1)*127.5).clip(0,255).astype(np.uint8))
+            M['mis_tank']=G.material('mis_tank',base=Image.fromarray((MIS['albedo']*255).astype(np.uint8)),normal=glb.cp_normal(_ni),mr=glb.mr_map(Image.fromarray((MIS['rough']*255).astype(np.uint8)),Image.fromarray((MIS['metal']*255).astype(np.uint8))),ext={'cull':1})
+            M['mis_print']=G.material('mis_print',base=MIS['print'],alpha='BLEND',rough=0.85,ext={'order':1})
+            M['mis_stitch']=G.material('mis_stitch',base=MIS['stitch'],alpha='BLEND',rough=0.8,ext={'order':1})
         elif it=='walletchain':
             _cl=np.asarray(DEN['d01'].convert('L').resize((2048,2048))).astype(np.float32); _cl=np.clip(150+(_cl-_cl.mean())*0.5,90,215).astype(np.uint8)
             M['chain_silver']=G.material('chain_silver',base=Image.fromarray(np.dstack([_cl,_cl,(_cl*1.02).clip(0,255).astype(np.uint8)])),normal=_dn_,rough=0.22,metal=1.0)

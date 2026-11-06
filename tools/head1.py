@@ -414,6 +414,24 @@ if OUTFIT and BODY:
                 nm_=['syn_pants','syn_zip','syn_stitch','syn_stitch'][min(k_,3)]
                 parts.append(dict(pos=s_['pos'],idx=s_['idx'],uv=s_['uv0'],nrm=s_.get('nrm'),tex=Image.fromarray((SYN['albedo']*255).astype(np.uint8)).convert('RGBA') if k_==0 else (SYN['zip'] if k_==1 else SYN['stitch']),alpha=0 if k_==0 else 2,name=nm_))
             continue
+        if it=='misfits':        # Johnny's tank (t1_090, 'fuk' appearance) with Tank_Misfits.archive's print swapped in
+            import ml as _ml2,garments as _ga3,struct as _st,io as _io
+            _ml2.FALLBACK_MASK=None
+            _SH='base\\characters\\main_npc\\silverhand\\textures\\'
+            MIS=_ml2.bake(_SH+'ml_t1_002_ma_tank__silverhand.mlsetup',_SH+'ml_t1_002_ma_tank__silverhand_masksset.mlmask',2048)
+            MIS['n01']=xbm.load(_ga3.segs_of(_SH+'t1_002_ma_tank__silverhand_n01.xbm'))
+            _ds=_ga3.segs_of('base\\characters\\garment\\player_equipment\\torso\\t1_090_tank__johnny\\textures\\fuk_d01.xbm')
+            try:
+                _b=_ds[0]; _r=cr2w.parse(_b); _hd=cr2w.chunk(_b,_r,1)[1]['header']; _w=_hd['sizeInfo']['width']; _h=_hd['sizeInfo']['height']; _sz=_hd['mipMapInfo'][0]['placement']['size']
+                _raw=_ds[-1][:_sz]; _pf=_st.pack('<II4sIIIII',32,4,b'DX10',0,0,0,0,0)
+                _hdr=b'DDS '+_st.pack('<IIIIIII',124,0x1|0x2|0x4|0x1000|0x80000,_h,_w,len(_raw),0,1)+b'\0'*44+_pf+_st.pack('<IIIII',0x1000,0,0,0,0)
+                MIS['print']=Image.open(_io.BytesIO(_hdr+_st.pack('<IIIII',xbm.DXGI['BC7'],3,0,1,0)+_raw)); MIS['print'].load(); MIS['print']=MIS['print'].convert('RGBA')
+            except Exception as _e: MIS['print']=xbm.load(_ds).convert('RGBA')
+            _gd2=xbm.load(_ga3.segs_of('base\\characters\\common\\textures\\decals\\garment_decals_d01.xbm')).convert('RGBA'); _gs=np.asarray(_gd2).copy(); _gs[...,:3]=(18,18,19); MIS['stitch']=Image.fromarray(_gs,'RGBA')
+            for k_,s_ in enumerate(mesh.decode(_ga3.segs_of('base\\characters\\garment\\player_equipment\\torso\\t1_090_tank__johnny\\t1_090_pma_tank__johnny.mesh'))['subs']):
+                nm_=['mis_tank','mis_print','mis_stitch'][min(k_,2)]
+                parts.append(dict(pos=s_['pos'],idx=s_['idx'],uv=s_['uv0'],nrm=s_.get('nrm'),tex=[Image.fromarray((MIS['albedo']*255).astype(np.uint8)).convert('RGBA'),MIS['print'],MIS['stitch']][min(k_,2)],alpha=0 if k_==0 else 2,name=nm_))
+            continue
         if it=='walletchain':    # Edgerunner wallet chain re-finished in polished silver
             q='pkd_rvcoondumpster\\denimedgerunner\\i1_pma_denimedgerunner_chain_base_body.mesh'
             for s_ in mesh.decode(_dn.extract(_dnf[names.fnv(q.lower())]))['subs']:
