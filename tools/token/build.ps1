@@ -10,6 +10,10 @@ $VTEX = Join-Path $GMOD 'bin\vtex.exe'
 $MDLC = Join-Path $GMOD 'bin\studiomdl.exe'
 if (!(Test-Path $MDLC)) { Write-Host "Can't find studiomdl at $MDLC - edit GMOD in build.bat" -ForegroundColor Red; exit 1 }
 $sw = [Diagnostics.Stopwatch]::StartNew()
+New-Item -ItemType Directory -Force (Join-Path $KIT 'logs') | Out-Null
+Start-Transcript -Path (Join-Path $KIT 'logs\build_log.txt') -Force | Out-Null
+trap { Write-Host "BUILD STOPPED: $_" -ForegroundColor Red; Stop-Transcript | Out-Null; exit 1 }
+Write-Host "Token build - leave this window open until it says Done." -ForegroundColor Cyan
 
 # 0. unpack any kit / patch zips Claude dropped in
 Get-ChildItem $KIT -Filter 'token_build*.zip' | ForEach-Object {
@@ -27,7 +31,8 @@ function RunParallel($jobs, [int]$max) {   # jobs: list of @{exe; args; name}
     while (@($running | Where-Object { -not $_.HasExited }).Count -ge $max) { Start-Sleep -Milliseconds 200 }
     $running += Start-Process -FilePath $j.exe -ArgumentList $j.args -NoNewWindow -PassThru -RedirectStandardOutput $j.log -RedirectStandardError "$($j.log).err"
   }
-  $running | ForEach-Object { $_.WaitForExit() }
+  while (@($running | Where-Object { -not $_.HasExited }).Count -gt 0) {
+    Write-Host ("   ...compiling, {0:N0} s elapsed" -f $sw.Elapsed.TotalSeconds); Start-Sleep -Seconds 10 }
 }
 $cpu = [Math]::Max(2, [Environment]::ProcessorCount - 1)
 
@@ -39,12 +44,17 @@ foreach ($t in Get-ChildItem (Join-Path $KIT 'materialsrc') -Filter *.tga) {
   $vtf = Join-Path $MD ($t.BaseName + '.vtf')
   if ($cache[$key] -ne $h -or !(Test-Path $vtf)) {
     Copy-Item $t.FullName, $txt $SRC -Force
-    $tex += @{ exe = $VTEX; args = @('-nopause','-quiet','-game',"`"$GAME`"","`"$(Join-Path $SRC $t.Name)`""); log = (Join-Path $KIT "logs\vtex_$($t.BaseName).txt"); key = $key; h = $h; out = $vtf }
+    $tex += @{ exe = $VTEX; args = @('-nopause','-quiet','-game',"`"$GAME`"","`"$(Join-Path $SRC $t.Name)`""); log = (Join-Path $KIT "logs\vtex_$($t.BaseName).txt"); key = $key; h = $h; out = $vtf; tga = (Join-Path $SRC $t.Name) }
   }
 }
-Write-Host "[1/3] Textures: $($tex.Count) changed"
-RunParallel $tex $cpu
-foreach ($j in $tex) { if (Test-Path $j.out) { $cache[$j.key] = $j.h } else { Write-Host "  vtex FAILED: $($j.out)" -ForegroundColor Red } }
+Write-Host "[1/3] Textures: $($tex.Count) to convert"
+$i = 0
+foreach ($j in $tex) {
+  $i++; Write-Host ("   ({0}/{1}) {2}" -f $i, $tex.Count, (Split-Path $j.out -Leaf))
+  & $VTEX -nopause -quiet -game $GAME $j.tga *> $j.log
+  if (Test-Path $j.out) { $cache[$j.key] = $j.h } else { Write-Host "   vtex FAILED: $($j.out) (see $($j.log))" -ForegroundColor Red }
+}
+$cache | ConvertTo-Json | Set-Content $cacheFile
 Copy-Item (Join-Path $KIT 'materials\*.vmt') $MD -Force
 
 # 2. models
@@ -77,4 +87,5 @@ foreach ($p in Get-ChildItem (Join-Path $KIT 'plans') -Filter *.json) {
   Compress-Archive -Path (Join-Path $d '*') -DestinationPath $zip
   Write-Host ("  {0}  {1:N1} MB" -f (Split-Path $zip -Leaf), ((Get-Item $zip).Length / 1MB))
 }
+Stop-Transcript | Out-Null
 Write-Host ("Done in {0:N0} s - tell Claude when finished." -f $sw.Elapsed.TotalSeconds) -ForegroundColor Green
