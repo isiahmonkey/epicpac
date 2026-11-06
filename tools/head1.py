@@ -1,4 +1,4 @@
-import sys,json,numpy as np; sys.path.insert(0,'/home/claude/tools/scripts'); sys.path.insert(0,'/home/claude/work/build')
+import os,sys,json,numpy as np; sys.path.insert(0,'/home/claude/tools/scripts'); sys.path.insert(0,'/home/claude/work/build')
 import os,modres,cr2w,mesh,morph,render,xbm
 from PIL import Image
 def morph_segs(segs):
@@ -8,7 +8,9 @@ def morph_segs(segs):
 A=modres.AR['Hades_Edition_Takemura_Cyberware__Head']; F={f['hash']:f for f in A.files}
 HM=morph_segs(A.extract(F[0x6f945da744b29d05]))
 tn=[t['name'] for t in HM['d']['targets']]; print(len(tn),'targets', [n for n in tn if n in('h141','h102','h143','h034')])
-W={'h141':1,'h102':1,'h143':1,'h034':1}
+FACES={'hades':{'h141':1,'h102':1,'h143':1,'h034':1},          # takemura hades edition.preset
+       'dionysus':{'h111':1,'h122':1,'h143':1,'h144':1,'h025':1}}  # PANTHEON_MASC_DIONYSUS.preset (eyes 11, nose 12, mouth 14, jaw 14, ear 2)
+FACE=os.environ.get('FACE','dionysus'); W=FACES[FACE]
 U='/mnt/user-data/uploads/characters/head/player_base_heads/player_man_average/'
 def xpng(p): return xbm.load(cr2w.load_loose(p)).convert("RGBA")
 skin=xpng(U+'h0_000_pma_c__basehead/textures/h0_000_pma_c__basehead_d01.xbm')

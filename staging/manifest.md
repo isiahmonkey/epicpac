@@ -5,7 +5,7 @@ Source preset: `takemura hades edition.preset` (40 options, resolved against `ma
 | Slot | Choice | Source |
 |---|---|---|
 | Head mesh | Hades Edition head (re-sculpted, 6,864 verts) | Hades_Edition_Takemura_Cyberware__Head |
-| Face shape | eyes h141, nose h102, mouth h143, jaw h034 (vanilla deltas transferred by nearest vertex) | base morphs |
+| Face shape | PANTHEON_MASC_DIONYSUS: eyes h111, nose h122, mouth h143, jaw h144, ear h025 (was Hades: eyes h141, nose h102, mouth h143, jaw h034) (vanilla deltas transferred by nearest vertex) | base morphs |
 | Neck cyberware | Takemura neck (57k verts, multilayered), recoloured black + red (iron/steel/titanium layers -> black, red enamel kept) | Hades_Edition_Takemura_Cyberware__Head |
 | Skin | deep brown (darker than CC 06_bl_dark; overrides preset pale), skin type 01 detail (basehead_d01); alt 06_bl_dark | base |
 | Eyes | eye_14 (overrides preset eye colour) | HighTech_Eyes_pack |
