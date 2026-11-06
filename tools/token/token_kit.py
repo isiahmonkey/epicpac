@@ -46,19 +46,19 @@ LAYOUT={
  },
 }
 FLATTEN={'bolero_ml':0.15,'bolerocuff_ml':0.15}
-LEATHER=' "$halflambert" "1"\n "$phong" "1"\n "$phongexponent" "28"\n "$phongboost" "1.6"\n "$phongfresnelranges" "[0.3 0.6 1]"\n{A}'
-SILVER=' "$envmap" "env_cubemap"\n "$envmaptint" "[.85 .85 .88]"\n "$envmapcontrast" "1"\n "$phong" "1"\n "$phongexponent" "70"\n "$phongboost" "6"\n "$phongalbedotint" "1"\n "$phongfresnelranges" "[1 1 1]"\n "$halflambert" "1"\n{A}'
-BLACKMETAL=' "$envmap" "env_cubemap"\n "$envmaptint" "[.07 .07 .075]"\n "$phong" "1"\n "$phongexponent" "35"\n "$phongboost" "2.5"\n "$phongfresnelranges" "[0.4 0.8 1]"\n "$halflambert" "1"\n{A}'
+LEATHER=' "$phong" "1"\n "$phongexponent" "28"\n "$phongboost" "1.6"\n "$phongfresnelranges" "[0.3 0.6 1]"\n{A}'
+SILVER=' "$envmap" "environment maps/metal_generic_002"\n "$envmaptint" "[1 1 1.03]"\n "$envmapcontrast" "1"\n "$phong" "1"\n "$phongexponent" "70"\n "$phongboost" "6"\n "$phongalbedotint" "1"\n "$phongfresnelranges" "[1 1 1]"\n "$halflambert" "1"\n{A}'
+BLACKMETAL=' "$envmap" "environment maps/metal_generic_002"\n "$envmaptint" "[.07 .07 .075]"\n "$phong" "1"\n "$phongexponent" "35"\n "$phongboost" "2.5"\n "$phongfresnelranges" "[0.4 0.8 1]"\n "$halflambert" "1"\n{A}'
 BLACKMETAL_N=' "$bumpmap" "{D}/{M}_n"\n'+BLACKMETAL
 CARDS_DARK=' "$alphatest" "1"\n "$alphatestreference" "0.4"\n "$allowalphatocoverage" "1"\n "$nocull" "1"\n "$phong" "1"\n "$phongexponent" "10"\n "$phongboost" "0.12"\n'
 EYES=' "$selfillum" "1"\n "$selfillumtint" "[2.2 2.2 2.2]"\n "$phong" "1"\n "$phongexponent" "60"\n "$phongboost" "1"\n'
 HAIR=' "$bumpmap" "{D}/{M}_n"\n "$alphatest" "1"\n "$alphatestreference" "0.4"\n "$allowalphatocoverage" "1"\n "$nocull" "1"\n'
-PLATE=' "$bumpmap" "{D}/{M}_n"\n "$normalmapalphaenvmapmask" "1"\n "$envmap" "env_cubemap"\n "$envmaptint" "[1.1 1.1 1.15]"\n "$envmapcontrast" "1"\n "$phong" "1"\n "$phongexponent" "60"\n "$phongboost" "5"\n "$phongfresnelranges" "[0.5 0.8 1]"\n "$alphatest" "1"\n "$alphatestreference" "0.5"\n'.replace('{D}',MATDIR).replace('{M}','token_{NM}')
+PLATE=' "$bumpmap" "{D}/{M}_n"\n "$normalmapalphaenvmapmask" "1"\n "$envmap" "environment maps/metal_generic_002"\n "$envmaptint" "[1.1 1.1 1.15]"\n "$envmapcontrast" "1"\n "$phong" "1"\n "$phongexponent" "60"\n "$phongboost" "5"\n "$phongfresnelranges" "[0.5 0.8 1]"\n "$alphatest" "1"\n "$alphatestreference" "0.5"\n'.replace('{D}',MATDIR).replace('{M}','token_{NM}')
 VMT_OVERRIDE={'cyberware':BLACKMETAL,'ga_cyber':BLACKMETAL,'ga_fingers':BLACKMETAL,'ga_end':BLACKMETAL,'earcyber':BLACKMETAL,'piercing':BLACKMETAL,
  'facecw_face':BLACKMETAL_N,'facecw_nose':BLACKMETAL_N,'eyes':EYES,
  'hair':HAIR,'hatfur':HAIR,'brows':' "$bumpmap" "{D}/{M}_n"\n'+CARDS_DARK.replace('"0.12"','"0.05"'),'brows_s7':CARDS_DARK,'brows_s14':CARDS_DARK,'lashes':CARDS_DARK,
  'haircap':HAIR.replace('"0.4"','"0.12"'),'bolero_ml':LEATHER,'bolerocuff_ml':LEATHER,'chain_silver':SILVER,'earring':SILVER,'nd_acc':SILVER,'vchain':SILVER,'vcross':SILVER}
-DARKEN={'hair':0.3,'hatfur':0.32,'haircap':0.3,'brows':0.6,'brows_s7':0.6,'brows_s14':0.6,'chain_silver':0.55,'earring':0.6,'nd_acc':0.55,'vchain':0.55,'vcross':0.55}   # polished metal: dark diffuse, the shine comes from the cubemap
+DARKEN={'bolero_ml':0.55,'bolerocuff_ml':0.55,'mis_tank':0.7,'den_pants':0.7,'vinyl':0.7,'hair':0.3,'hatfur':0.32,'haircap':0.3,'brows':0.6,'brows_s7':0.6,'brows_s14':0.6,'chain_silver':0.7,'earring':0.85,'nd_acc':0.55,'vchain':0.55,'vcross':0.55}   # polished metal: dark diffuse, the shine comes from the cubemap
 BODY_MODEL='token_body'; KEEP=False; KITZIP='token_kit.zip'; PACZIP='token_pac3.zip'; BATNAME='compile_token.bat'
 DEFAULT_ON={'head','arms','neck_cyberware','head_hair','face_cyberware','face_piercings','face_decal','ear_left','ear_right'}   # groups without a 'blank' at index 0
 
@@ -118,11 +118,11 @@ VMTX={
  'skin_arms':' "$bumpmap" "{D}/{M}_n"\n "$phong" "1"\n "$phongexponent" "14"\n "$phongboost" "0.5"\n "$phongfresnelranges" "[0.2 0.6 1.2]"\n "$halflambert" "1"\n',
  'cards':' "$alphatest" "1"\n "$alphatestreference" "0.4"\n "$allowalphatocoverage" "1"\n "$nocull" "1"\n "$halflambert" "1"\n "$phong" "1"\n "$phongexponent" "8"\n "$phongboost" "0.4"\n "$phongfresnelranges" "[0.3 0.6 1]"\n',
  'eyes':' "$selfillum" "1"\n "$selfillumtint" "[1.6 1.6 1.6]"\n "$phong" "1"\n "$phongexponent" "60"\n "$phongboost" "3"\n',
- 'glass':' "$translucent" "1"\n "$envmap" "env_cubemap"\n "$envmaptint" "[.5 .5 .52]"\n "$phong" "1"\n "$phongexponent" "80"\n "$phongboost" "6"\n',
+ 'glass':' "$translucent" "1"\n "$envmap" "environment maps/metal_generic_002"\n "$envmaptint" "[.5 .5 .52]"\n "$phong" "1"\n "$phongexponent" "80"\n "$phongboost" "6"\n',
  'glow':' "$selfillum" "1"\n "$selfillumtint" "[4 .2 .15]"\n',
- 'metal':' "$envmap" "env_cubemap"\n "$envmaptint" "[.35 .35 .37]"\n "$envmapsaturation" "0.4"\n "$phong" "1"\n "$phongexponent" "40"\n "$phongboost" "3"\n "$phongfresnelranges" "[0.6 0.85 1]"\n "$halflambert" "1"\n{A}',
+ 'metal':' "$envmap" "environment maps/metal_generic_002"\n "$envmaptint" "[.35 .35 .37]"\n "$envmapsaturation" "0.4"\n "$phong" "1"\n "$phongexponent" "40"\n "$phongboost" "3"\n "$phongfresnelranges" "[0.6 0.85 1]"\n "$halflambert" "1"\n{A}',
  'decal':' "$alphatest" "1"\n "$alphatestreference" "0.45"\n "$allowalphatocoverage" "1"\n "$halflambert" "1"\n',
- 'cloth':' "$halflambert" "1"\n "$phong" "1"\n "$phongexponent" "12"\n "$phongboost" "1.2"\n "$phongfresnelranges" "[0.4 0.7 1]"\n{A}',
+ 'cloth':' "$phong" "1"\n "$phongexponent" "12"\n "$phongboost" "1.2"\n "$phongfresnelranges" "[0.4 0.7 1]"\n{A}',
 }
 TEXCAP={'bolero_ml':2048,'bolerocuff_ml':2048,'den_pants':2048,'vinyl':2048,'den_hoodie':2048,'syn_pants':2048,'skin':2048,'jeans':2048,'mis_tank':2048,'body':2048,'arms':2048,'hair':1024,'coatfur':1024,'jacketfur':1024,'cyberware':2048,'ga_cyber':2048}
 def to_tga(im,nm):
@@ -179,6 +179,9 @@ def main():
         if nm in FLATTEN:    # baked wear/scuff layers read as grey paint in Gmod's albedo-only shading: pull them back toward the base colour
             a=np.asarray(im).astype(np.float32); base=np.median(a[...,:3].reshape(-1,3),0)
             a[...,:3]=base+(a[...,:3]-base)*FLATTEN[nm]; im=Image.fromarray(np.clip(a,0,255).astype(np.uint8),im.mode)
+        if nm in ('cyberware','ga_cyber','earcyber','ga_fingers','ga_end'):
+            a=np.asarray(im).astype(np.float32); rgb=a[...,:3]; sat=(rgb.max(2)-rgb.min(2))/np.maximum(rgb.max(2),1)
+            k=np.where(sat<0.35,0.35,1.0)[...,None]; a[...,:3]=rgb*k; im=Image.fromarray(np.clip(a,0,255).astype(np.uint8),im.mode)
         if nm in DARKEN:
             a=np.asarray(im).astype(np.float32); a[...,:3]*=DARKEN[nm]; im=Image.fromarray(np.clip(a,0,255).astype(np.uint8),im.mode)
         if nm in ('facecw_face','facecw_nose'):   # Emmerich plates: crisp metal plate (alphatest) + chrome bevels from the normal map + soft incision rim (translucent)
