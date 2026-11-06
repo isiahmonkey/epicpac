@@ -50,14 +50,16 @@ def basemorph(fn,w):
 import names
 _ea=modres.AR['HighTech_Eyes_pack']; _ef={f['hash']:f for f in _ea.files}
 EYE=xbm.load(_ea.extract(_ef[names.fnv('base\\eyes\\textures\\eye_14_diffuse.xbm')])).convert('RGBA'); EYE.save('/home/claude/work/staging/eye14.png')
-def bake_eye(im,iris_size=0.7373740077018738,r_src=0.165,r_out=0.30):
+# dv: iris centred 1.3 mm lower (v grows upward on the eyeball) so the upper lid doesn't cut it
+def bake_eye(im,iris_size=0.7373740077018738,r_src=0.165,r_out=0.30,dv=0.040):
     # emulate eye_gradient.mt for a flat bake: iris shrunk by IrisSize (radial remap, sclera kept),
     # limbal ring, cornea 'Blick' reflection and a wet sheen
     a=np.asarray(im).astype(np.float32); Hh,Ww=a.shape[:2]
-    yy,xx=np.mgrid[0:Hh,0:Ww].astype(np.float32); u=(xx+0.5)/Ww-0.5; v=(yy+0.5)/Hh-0.5; r=np.sqrt(u*u+v*v)+1e-9
+    yy,xx=np.mgrid[0:Hh,0:Ww].astype(np.float32); u=(xx+0.5)/Ww-0.5; v=(yy+0.5)/Hh-0.5+dv; r=np.sqrt(u*u+v*v)+1e-9
     r_new=r_src*iris_size
     rs=np.where(r<r_new, r/iris_size, np.where(r<r_out, r_src+(r-r_new)*(r_out-r_src)/(r_out-r_new), r))
     sx=np.clip((0.5+u*rs/r)*Ww-0.5,0,Ww-1); sy=np.clip((0.5+v*rs/r)*Hh-0.5,0,Hh-1)
+    sy=np.where(r<r_out,sy,np.clip(yy,0,Hh-1))
     x0=np.floor(sx).astype(int); y0=np.floor(sy).astype(int); x1=np.minimum(x0+1,Ww-1); y1=np.minimum(y0+1,Hh-1); fx=(sx-x0)[...,None]; fy=(sy-y0)[...,None]
     o=a[y0,x0]*(1-fx)*(1-fy)+a[y0,x1]*fx*(1-fy)+a[y1,x0]*(1-fx)*fy+a[y1,x1]*fx*fy
     limb=np.exp(-((r-r_new)/(0.012))**2)*0.45; o[...,:3]*=(1-limb[...,None])        # dark limbal ring
@@ -66,8 +68,12 @@ def bake_eye(im,iris_size=0.7373740077018738,r_src=0.165,r_out=0.30):
     g2=np.exp(-(((u-0.05)**2+(v-0.02)**2)/(2*0.006**2)))*0.5                     # small secondary blick
     sh=np.exp(-(r/(r_new*1.15))**8)*0.10                                         # wet cornea sheen
     hl=np.clip(g1*0.85+g2+sh,0,1)[...,None]; o[...,:3]=o[...,:3]*(1-hl)+255*hl
+    # emission: the saturated red/amber hues of the implant iris + brackets glow faintly
+    mx=o[...,:3].max(-1); mn=o[...,:3].min(-1); sat=(mx-mn)/(mx+1e-6)
+    em=np.clip((sat-0.45)/0.4,0,1)*np.clip((mx-110)/120,0,1)*(r<r_out*0.95)
+    global EYE_EMIT; EYE_EMIT=Image.fromarray(np.dstack([o[...,:3]*em[...,None],np.full(em.shape,255)]).astype(np.uint8),'RGBA')
     return Image.fromarray(np.clip(o,0,255).astype(np.uint8),'RGBA')
-EYE=bake_eye(EYE); EYE.save('/home/claude/work/staging/eye14_baked.png')
+EYE=bake_eye(EYE); EYE_EMIT.save('/home/claude/work/staging/eye14_emit.png'); EYE.save('/home/claude/work/staging/eye14_baked.png')
 EM,ep=basemorph('he_000_pma__morphs.morphtarget',W)
 def fit_sphere(q):
     A=np.c_[2*q,np.ones(len(q))]; b=(q**2).sum(1); x=np.linalg.lstsq(A,b,rcond=None)[0]; c=x[:3]; return c,np.sqrt(x[3]+c@c)
@@ -90,7 +96,7 @@ for i,s in enumerate(EM['geo']['subs']):
         _l=Image.open('/home/claude/work/tex/base/eyelashes_ma_01_lod1.png'); _L=np.asarray(_l.convert('L')).astype(float); _al=np.asarray(_l)[...,3].astype(float) if _l.mode=='RGBA' else np.clip(_L/max(_L.max(),1)*1.15,0,1)*255
         LASH=Image.fromarray(np.dstack([np.full(_L.shape,14),np.full(_L.shape,12),np.full(_L.shape,12),_al]).astype(np.uint8),'RGBA')
         parts.append(dict(pos=ep[i],idx=s['idx'],uv=s['uv0'],tex=LASH,alpha=2))
-    else: parts.append(dict(pos=ep[i],idx=s['idx'],uv=s['uv0'],tex=EYE,alpha=0))
+    else: parts.append(dict(pos=ep[i],idx=s['idx'],uv=s['uv0'],tex=EYE,alpha=0,emit=EYE_EMIT))
 BM,bp=basemorph('heb_000_pma__morphs.morphtarget',W)
 bw=np.asarray(xbm.load(cr2w.load_loose('/mnt/user-data/uploads/characters/common/character_customisation_items/eyebrows/textures/heb__base_d08.xbm')).convert('RGBA')).astype(float)
 g=bw[...,:3].mean(-1,keepdims=True)/255                      # hair strand shading, black_carbon tint
