@@ -31,6 +31,14 @@ if MAINE: M['maine']=G.material('maine',base=MAINE_D,alpha='BLEND',rough=0.35,me
 if BODY:
     M['body']=G.material('body',base=BODY_D.convert('RGB'),normal=glb.cp_normal(BODY_N),nscale=0.8,color=(0.85,0.85,0.85,1),rough=0.62,ext={'skin':1.0})
     M['arms']=G.material('arms',base=ARMS_D.convert('RGB'),normal=glb.cp_normal(ARMS_N),nscale=0.8,color=(0.85,0.85,0.85,1),rough=0.62,ext={'skin':1.0})
+    if GORILLA:
+        import xbm as _x
+        def _gm(t,nrm):
+            g=lambda k: Image.open(S+'ga_%s_%s_%s.png'%(t,GORILLA,k))
+            return G.material('ga_'+t,base=g('a').convert('RGB'),normal=glb.cp_normal(_x.load(cr2w.load_loose('/mnt/user-data/uploads/characters/cyberware/player/a0_005__strongarms/entities/meshes/textures/'+nrm))) if nrm else None,mr=glb.mr_map(g('r').convert('L'),g('m').convert('L')))
+        M['ga_fingers']=_gm('fingers','a0_005_ma__strongarms_smooth_n01.xbm'); M['ga_end']=_gm('end','a0_005_ma__strongarms_end_n01.xbm'); M['ga_cyber']=_gm('cyber','a0_005_wa__strongarms_cyberware_n01.xbm')
+        for _k,_v in GA_DEC.items(): M['ga_dec_'+_k]=G.material('ga_dec_'+_k,base=_v,alpha='BLEND',rough=0.5,ext={'order':1})
+        M['ga_glass']=G.material('ga_glass',color=(0.02,0.02,0.025,1),rough=0.05,ext={'clearcoat':1.0})
     M['nails']=G.material('nails',color=(0.07,0.045,0.035,1),rough=0.3)
 for p in parts:
     if p['name'] not in M: continue

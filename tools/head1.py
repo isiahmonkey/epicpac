@@ -304,9 +304,32 @@ if BODY:
     BODY_N=Image.open(_TB+'t0_000_ma__c_base_n03_censored.png').convert('RGB'); ARMS_N=Image.open(_TB+'a0_000_ma_base__hq_nd01.png').convert('RGB')
     for s_ in mesh.decode(cr2w.load_loose(_B+'t0_000_pma_base__full.mesh'))['subs']:
         parts.append(dict(pos=s_['pos'],idx=s_['idx'],uv=s_['uv0'],tex=BODY_D,alpha=0,name='body'))
+    GORILLA=os.environ.get('GORILLA','')        # '', 'black', 'silver' -> both arms Gorilla Arms (TPP holstered)
+    import mats as _mats
+    _GA='/mnt/user-data/uploads/characters/cyberware/player/a0_005__strongarms/entities/meshes/'
+    import garments as _gmt
+    def _dx(p): return xbm.load(_gmt.segs_of(p)).convert('RGBA')
+    _GT='base\\characters\\cyberware\\player\\a0_005__strongarms\\entities\\meshes\\textures\\'; _DT='base\\characters\\common\\textures\\decals\\'
+    _fists=_dx(_DT+'decals_gorilla_fists_d01.xbm')
+    if GORILLA=='black': _fa=np.asarray(_fists).copy(); _fa[...,:3]=(_fa[...,:3]*0.12).astype(np.uint8); _fists=Image.fromarray(_fa,'RGBA')   # black arms: dark tape/print
+    GA_DEC={'decal_holstered_forearm_01':_dx(_GT+'a0_005_ma__strongarms_v2_dec_04_d01.xbm'),'decal_holes':_dx(_GT+'a0_005_ma__strongarms_v2_dec_04_d01.xbm'),
+            'decal_tapes2':_fists,'decal_hand_top':_fists,'decal_cyberware_text':_fists,
+            'decal_under_cyberware':_dx(_GT+'a0_005_wa__strongarms_cyberware_dec_01_d01.xbm'),'decal_betewwn_fingers':_dx(_GT+'a0_005_wa__strongarms_cyberware_dec_02_d01.xbm')} if GORILLA else {}
+    if GORILLA=='black':
+        for _k in list(GA_DEC): _a=np.asarray(GA_DEC[_k]).copy(); _a[...,:3]=(_a[...,:3]*0.12).astype(np.uint8); GA_DEC[_k]=Image.fromarray(_a,'RGBA')
     for side in 'lr':
-        for k_,s_ in enumerate(mesh.decode(cr2w.load_loose(_B+'arms_hq/a0_000_pma_base_hq__%s.mesh'%side))['subs'][:3]):
-            parts.append(dict(pos=s_['pos'],idx=s_['idx'],uv=s_['uv0'],tex=ARMS_D,alpha=0,name='arms'))
+        if not GORILLA:
+            for k_,s_ in enumerate(mesh.decode(cr2w.load_loose(_B+'arms_hq/a0_000_pma_base_hq__%s.mesh'%side))['subs'][:3]):
+                parts.append(dict(pos=s_['pos'],idx=s_['idx'],uv=s_['uv0'],tex=ARMS_D,alpha=0,name='arms'))
+            continue
+        _sg=cr2w.load_loose(_GA+'a0_005_ma__strongarms_holstered_%s.mesh'%side); _ch,_=_mats.appearance_refs(_sg,'default')
+        for s_ in mesh.decode(_sg)['subs']:
+            mn=_ch[s_['chunk']] if s_['chunk']<len(_ch) else ''
+            nm='arms' if mn.startswith(('arm','forearm')) else 'ga_fingers' if mn=='fingers' else 'ga_end' if 'strongarms_end' in mn else 'ga_glass' if mn=='glass' else None
+            if mn in GA_DEC: nm='ga_dec_'+mn
+            if nm: parts.append(dict(pos=s_['pos'],idx=s_['idx'],uv=s_['uv0'],tex=GA_DEC.get(mn,ARMS_D),alpha=2 if mn in GA_DEC else 0,name=nm))
+        for s_ in mesh.decode(cr2w.load_loose(_GA+'a0_005_ma__strongarms_holstered_cyberware_%s.mesh'%side))['subs']:
+            parts.append(dict(pos=s_['pos'],idx=s_['idx'],uv=s_['uv0'],tex=ARMS_D,alpha=0,name='ga_cyber'))
         for s_ in mesh.decode(cr2w.load_loose(_B+'arms_hq/nails/a0_000_pma_base__nails_%s.mesh'%side))['subs']:
             parts.append(dict(pos=s_['pos'],idx=s_['idx'],uv=s_['uv0'],tex=Image.new('RGBA',(4,4),(74,52,44,255)),alpha=0,name='nails'))
 # Takemura neck cyberware: ml_h1_001_ma_cyberware__takemura.mlsetup baked (titanium / cast iron / enamel / red tech plastic)
