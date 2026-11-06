@@ -24,6 +24,8 @@ M={'skin':G.material('skin',base=skin.convert('RGB'),color=(0.85,0.85,0.85,1),no
    'haircap':G.material('haircap',base=HAIR_CAP,alpha='BLEND',rough=0.8,ext={'order':0}),
    'earring':G.material('earring',base=Image.open(S+'ear06_albedo.png').convert('RGB'),mr=glb.mr_map(Image.open(S+'ear06_rough.png').convert('L'),Image.open(S+'ear06_metal.png').convert('L'))),
    'hatfur':G.material('hatfur',base=HAT_CARDS,alpha='MASK',cutoff=0.4,rough=0.6,double=True,ext={'hair':1}),
+   'jacketfur':G.material('jacketfur',base=JACKET_CARDS,alpha='MASK',cutoff=0.4,rough=0.6,double=True,ext={'hair':2}),
+   'jacketcap':G.material('jacketcap',base=HAT_CAP.convert('RGB'),rough=0.9),
    'hatcap':G.material('hatcap',base=HAT_CAP.convert('RGB'),rough=0.9),
    'piercing':G.material('piercing',color=(0.012,0.012,0.014,1),rough=0.18,metal=0.0,ext={'clearcoat':0.6}),
    'cyberware':G.material('cyberware',base=cw_base,normal=cw_n,mr=cw_mr)}

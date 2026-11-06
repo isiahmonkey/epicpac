@@ -243,7 +243,10 @@ if HAT:
     _fla=_hl('textures/hh_short01_alpha01_r.xbm'); _fsz=_fla.shape[::-1]
     HAT_CARDS=hair_cards(_fla,_hl('textures/hh_short01_id01_r.xbm',_fsz),_hl('textures/hh_short01_grad01_r.xbm',_fsz))
     _capm=os.path.exists('/mnt/user-data/uploads/characters/garment/citizen_fashion/torso/t1_104_dress__golden/textures/t1_104_wa_dress__golden_black_carbon__cap.mi')
-    HAT_CAP=Image.new('RGBA',(64,64),tuple(int(x) for x in _gm[len(_gm)//3])+(255,))   # placeholder until the t1_104 cap material is pulled
+    _jc=np.asarray(HAT_CARDS).astype(np.float32); _lum=_jc[...,:3].mean(-1,keepdims=True)
+    _jc[...,:3]=np.clip(_lum*0.45+ _jc[...,:3]*0.15,0,255)          # garment fur: no ashy tips, near-black with value variation only
+    JACKET_CARDS=Image.fromarray(_jc.astype(np.uint8),'RGBA')
+    HAT_CAP=Image.new('RGBA',(64,64),tuple(int(x) for x in _gm[1])+(255,))   # under-fur skin layer: darkest black_carbon cap tone (the t1_104 cap mi is a near-uniform root colour)
     for _k,_s in enumerate(_hat):
         q=warp_from_vanilla(_s['pos'],k=6)
         if _k==0: q,_l=float_on(q,hp[0],HM['geo']['subs'][0]['idx'],gap=0.0008)
@@ -361,8 +364,12 @@ if OUTFIT and BODY:
     for it in OUTFIT:
         if it=='furjacket':      # axellysse fur jacket, black_carbon: same fur cards + cap material as the hat
             _fa2=modres.AR['axellysse_fur_collection']; _ff2={f['hash']:f for f in _fa2.files}
-            for _k,_s in enumerate(mesh.decode(_fa2.extract(_ff2[names.fnv('axellysse\\fur_collection\\mesh\\jacket_fur_m_base_body.mesh')]))['subs']):
-                parts.append(dict(pos=_s['pos'],idx=_s['idx'],uv=_s['uv0'],nrm=_s.get('nrm'),tex=HAT_CAP if _k==0 else HAT_CARDS,alpha=0 if _k==0 else 2,name='hatcap' if _k==0 else 'hatfur'))
+            _jsubs=mesh.decode(_fa2.extract(_ff2[names.fnv('axellysse\\fur_collection\\mesh\\jacket_fur_m_base_body.mesh')]))['subs']
+            _cp_=_jsubs[0]['pos']; _cn_=_jsubs[0]['nrm'][:,:3]; _cn_=_cn_/np.linalg.norm(_cn_,axis=1,keepdims=True)
+            _cc=_cp_.mean(0); _cn_*=np.sign(((_cp_-_cc)*_cn_).sum(1,keepdims=True)+1e-9)                      # outward
+            _jsubs[1]=dict(_jsubs[1],nrm=_cn_[cKDTree(_cp_).query(_jsubs[1]['pos'])[1]])                   # fur cards take the smooth under-layer normal
+            for _k,_s in enumerate(_jsubs):
+                parts.append(dict(pos=_s['pos'],idx=_s['idx'],uv=_s['uv0'],nrm=_s.get('nrm'),tex=HAT_CAP if _k==0 else JACKET_CARDS,alpha=0 if _k==0 else 2,name='jacketcap' if _k==0 else 'jacketfur'))
             continue
         if it=='platform':
             _yb=_rd5.Archive('/home/claude/work/new1/src/mods/yusei_short_heeled_boots.archive'); _ybf={f['hash']:f for f in _yb.files}
