@@ -209,6 +209,13 @@ for _s,_nm in HSUBS:
     q=warp_from_vanilla(_s['pos'],k=6)
     if _nm=='haircap': q,_l=float_on(q,hp[0],HM['geo']['subs'][0]['idx'],gap=0.0005)
     parts.append(dict(pos=q,idx=_s['idx'],uv=_s['uv0'],tex=HAIR_CARDS if _nm=='hair' else HAIR_CAP,alpha=2,name=_nm))
+# ---- Kwek simple cross earrings (earrings_06, kwek_silver) - LEFT ear only (-X); dyng_earring_left_01/02 dangle in CP
+import rdar as _rd3
+_kw=_rd3.Archive('/home/claude/work/new1/src/mods/kwek_earrings06.archive'); _kwf={f['hash']:f for f in _kw.files}
+EARRING=mesh.decode(_kw.extract(_kwf[names.fnv('kwek\\items\\clothing\\face\\earrings_06\\earrings_06.mesh')]))['subs'][0]
+_et=EARRING['idx'].reshape(-1,3); _keep=EARRING['pos'][_et].mean(1)[:,0]<0
+_ER=dict(EARRING,idx=_et[_keep].ravel()); _q=warp_from_vanilla(_ER['pos'])
+parts.append(dict(pos=_q,idx=_ER['idx'],uv=_ER['uv0'],tex=Image.open('/home/claude/work/staging/ear06_albedo.png').convert('RGBA'),alpha=0,name='earring'))
 # Takemura neck cyberware: ml_h1_001_ma_cyberware__takemura.mlsetup baked (titanium / cast iron / enamel / red tech plastic)
 CWA=np.asarray(Image.open('/home/claude/work/staging/cw_albedo.png').convert('RGB')).astype(np.float32)
 _met=np.asarray(Image.open('/home/claude/work/staging/cw_metal.png')).astype(np.float32)[...,None]/255
