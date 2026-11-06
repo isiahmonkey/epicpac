@@ -23,7 +23,10 @@ M={'skin':G.material('skin',base=skin.convert('RGB'),color=(0.85,0.85,0.85,1),no
    'earring':G.material('earring',base=Image.open(S+'ear06_albedo.png').convert('RGB'),mr=glb.mr_map(Image.open(S+'ear06_rough.png').convert('L'),Image.open(S+'ear06_metal.png').convert('L'))),
    'hatfur':G.material('hatfur',base=HAT_CARDS,alpha='MASK',cutoff=0.4,rough=0.6,double=True,ext={'hair':1}),
    'hatcap':G.material('hatcap',base=HAT_CAP.convert('RGB'),rough=0.9),
+   'piercing':G.material('piercing',color=(0.012,0.012,0.014,1),rough=0.18,metal=0.0,ext={'clearcoat':0.6}),
    'cyberware':G.material('cyberware',base=cw_base,normal=cw_n,mr=cw_mr)}
+if FACE_CW:
+    for _k,v in FACECW.items(): M['facecw_'+_k]=G.material('facecw_'+_k,base=v['base'],normal=glb.cp_normal(v['normal']),mr=glb.mr_map(v['rough'],v['metal']),alpha='BLEND',ext={'order':1})
 for p in parts:
     if p['name'] not in M: continue
     G.mesh(p['name'],p['pos'],p['idx'],p['uv'],M[p['name']])

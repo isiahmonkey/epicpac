@@ -11,6 +11,8 @@ Source preset: `takemura hades edition.preset` (40 options, resolved against `ma
 | Eyes | eye_14 (overrides preset eye colour) | HighTech_Eyes_pack |
 | Brows | style 08, black_carbon | base |
 | Scars | face scar 02 | base |
+| Face cyberware | Emmerich CC cyberware_13 (cheek/eye + nose/chin plates), repainted gloss black (was pearl chrome) | base CC |
+| Face piercing | Emmerich CC piercings 03 (nose rings + lip), plastic_black, rigid per ring | base CC |
 | Earring | Kwek simple cross earrings (earrings_06) kwek_silver, LEFT ear only, dangle -> 1 PAC jiggle (standards/physics.md) | kwekClothing_Earrings06 |
 | Ear cyberware | RIGHT ear only (left gets the cross earring); ANRUI ear shell, Black, metal full / rough half / OG normals; skin tucked under, lifted over neck piece | ANRUI_MEarCyberware_Base + Customization |
 | Hair | Half Bun Dreads (Male V), black_carbon (overrides preset hair) | Half_Bun_DreadsMale_V |

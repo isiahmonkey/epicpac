@@ -235,6 +235,48 @@ if HAT:
         q=warp_from_vanilla(_s['pos'],k=6)
         if _k==0: q,_l=float_on(q,hp[0],HM['geo']['subs'][0]['idx'],gap=0.0008)
         parts.append(dict(pos=q,idx=_s['idx'],uv=_s['uv0'],tex=HAT_CAP if _k==0 else HAT_CARDS,alpha=0 if _k==0 else 2,name='hatcap' if _k==0 else 'hatfur'))
+# ---- Emmerich's face cyberware (CC cyberware_13: face plate on tattoo_06 decal + nose plate on freckles_01 decal), painted BLACK
+FACE_CW=os.environ.get('FACE_CW','1')=='1'
+if FACE_CW:
+    import json as _js
+    _P=_js.load(open('/home/claude/work/build/parts.json')); _T='/home/claude/work/tex/base/'
+    _CW={'face':dict(d='hx_cyberware_13_n02',n='hx_cyberware_13_m02',m='hx_cyberware_13_d03',r='hx_cyberware_13_r02',k='hx_cyberware_13_d04'),   # decoded from cyberware_13 *.mi
+         'nose':dict(d='hx_cyberware_13_n01',n='hx_cyberware_13_d02',m='hx_cyberware_13_r01',r='hx_cyberware_13_m01',k='hx_cyberware_13_d01')}
+    def _cwL(n,sz=None): im=Image.open(_T+n+'.png').convert('L'); im=im.resize(sz,Image.LANCZOS) if sz else im; return np.asarray(im).astype(np.float32)/255
+    FACECW={}
+    for _k,_pk in (('face','cw13_face'),('nose','cw13_nose')):
+        c=_CW[_k]; dimg=Image.open(_T+c['d']+'.png').convert('RGB'); sz=dimg.size
+        met=_cwL(c['k'],sz); msk=_cwL(c['m'],sz); rgh=_cwL(c['r'],sz)
+        from PIL import ImageFilter as _IF
+        rim=np.clip(msk-met,0,1); rim=np.asarray(Image.fromarray((rim*255).astype(np.uint8)).filter(_IF.GaussianBlur(3))).astype(np.float32)/255
+        a=np.maximum(met,rim*0.55)
+        # plates: black paint (was pearl-white chrome);  incision rims: darkened deep skin
+        paint=np.array([11,11,12.0]); rimc=np.array([30,19,14.0])
+        rgb=paint*met[...,None]+rimc*(1-met[...,None])
+        FACECW[_k]=dict(base=Image.fromarray(np.dstack([rgb,a*255]).astype(np.uint8),'RGBA'),
+                       normal=Image.open(_T+c['n']+'.png').convert('RGB'),
+                       rough=Image.fromarray((np.clip(0.28+0.25*rgh,0,1)*255).astype(np.uint8)),   # glossy lacquer
+                       metal=Image.fromarray((met*0.15*255).astype(np.uint8)))                      # paint over metal: mostly dielectric
+        M_=morph.load(_P[_pk]['morph']); nm=[t['name'] for t in M_['d']['targets']]; pp=morph.apply(M_,{a_:b_ for a_,b_ in W.items() if a_ in nm})
+        for i,sb in enumerate(M_['geo']['subs']):
+            q=warp_from_vanilla(pp[i]); q,_l=float_on(q,hp[0],HM['geo']['subs'][0]['idx'],gap=0.0004)
+            parts.append(dict(pos=q,idx=sb['idx'],uv=sb['uv0'],tex=FACECW[_k]['base'],alpha=2,name='facecw_'+_k))
+# ---- Emmerich's piercing (CC piercings set 03: i1_000_pma_c__basehead_earring_03, plastic_black = nose ring)
+if os.environ.get('PIERCING','1')=='1':
+    import json as _js2, collections as _co
+    _PP=_js2.load(open('/home/claude/work/build/parts.json'))['piercing']
+    _MP=morph.load(_PP['morph']); _nm=[t['name'] for t in _MP['d']['targets']]; _pp=morph.apply(_MP,{a_:b_ for a_,b_ in W.items() if a_ in _nm})
+    for i,sb in enumerate(_MP['geo']['subs']):
+        p=_pp[i]; t=sb['idx'].reshape(-1,3); par=np.arange(len(p))
+        def _f(a):
+            while par[a]!=a: par[a]=par[par[a]]; a=par[a]
+            return a
+        for a,b,c in t:
+            for y in (b,c): ra,rb=_f(a),_f(y); par[ra]=rb
+        roots=np.array([_f(k) for k in range(len(p))]); q=p.copy()
+        for r_ in np.unique(roots):                      # rigid per ring: translate each piece by the warp at its centre
+            m_=roots==r_; c_=p[m_].mean(0,keepdims=True); q[m_]=p[m_]+(warp_from_vanilla(c_)-c_)
+        parts.append(dict(pos=q,idx=sb['idx'],uv=sb['uv0'],color=(18,18,20),tex=Image.new('RGBA',(4,4),(16,16,18,255)),alpha=0,name='piercing'))
 # Takemura neck cyberware: ml_h1_001_ma_cyberware__takemura.mlsetup baked (titanium / cast iron / enamel / red tech plastic)
 CWA=np.asarray(Image.open('/home/claude/work/staging/cw_albedo.png').convert('RGB')).astype(np.float32)
 _met=np.asarray(Image.open('/home/claude/work/staging/cw_metal.png')).astype(np.float32)[...,None]/255
