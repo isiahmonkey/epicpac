@@ -277,6 +277,22 @@ if os.environ.get('PIERCING','1')=='1':
         for r_ in np.unique(roots):                      # rigid per ring: translate each piece by the warp at its centre
             m_=roots==r_; c_=p[m_].mean(0,keepdims=True); q[m_]=p[m_]+(warp_from_vanilla(c_)-c_)
         parts.append(dict(pos=q,idx=sb['idx'],uv=sb['uv0'],color=(18,18,20),tex=Image.new('RGBA',(4,4),(16,16,18,255)),alpha=0,name='piercing'))
+# ---- ANRUI "Maine" face cyberware (MeshM, own morphtarget -> follows the face shape); colour set via MAINE env
+MAINE=os.environ.get('MAINE','')
+if MAINE:
+    import rdar as _rd4
+    _MA='/mnt/user-data/uploads/V_Gmod/New Mods/ARCHIVES/'
+    _ma=_rd4.Archive(_MA+'Mesh/MeshM/ANRUI_Maine_Cyberware_MeshM_01.archive')
+    _segs={cr2w.parse(_ma.extract(f)[0])['chunks'][0][0]:_ma.extract(f) for f in _ma.files}
+    _mm=morph.load.__globals__['mesh']  # noqa
+    _b=_segs['MorphTargetMesh']; _r=cr2w.parse(_b[0]); _d=cr2w.chunk(_b[0],_r,0)[1]
+    _mbi=[i for i,(c,_,_) in enumerate(_r['chunks']) if c=='rendRenderMorphTargetMeshBlob'][0]; _md=cr2w.chunk(_b[0],_r,_mbi)[1]
+    _MM=dict(segs=_b,r=_r,d=_d,md=_md,geo=mesh.decode(_b,lod=1,blob=_md['baseBlob'][1]))
+    _nm=[t['name'] for t in _d['targets']]; _mp=safe_apply(_MM,{a_:b_ for a_,b_ in W.items() if a_ in _nm})
+    MAINE_D=xbm.load(_rd4.Archive(_MA+MAINE).extract([f for f in _rd4.Archive(_MA+MAINE).files][0])).convert('RGBA')
+    for i,sb in enumerate(_MM['geo']['subs']):
+        q=warp_from_vanilla(_mp[i]); q,_l=float_on(q,hp[0],HM['geo']['subs'][0]['idx'],gap=0.0005)
+        parts.append(dict(pos=q,idx=sb['idx'],uv=sb['uv0'],tex=MAINE_D,alpha=2,name='maine'))
 # Takemura neck cyberware: ml_h1_001_ma_cyberware__takemura.mlsetup baked (titanium / cast iron / enamel / red tech plastic)
 CWA=np.asarray(Image.open('/home/claude/work/staging/cw_albedo.png').convert('RGB')).astype(np.float32)
 _met=np.asarray(Image.open('/home/claude/work/staging/cw_metal.png')).astype(np.float32)[...,None]/255
