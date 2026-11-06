@@ -47,10 +47,14 @@ hp=transfer(HM,{k:v for k,v in W.items() if k in tn}) if os.environ.get('MORPH',
 for i,s in enumerate(HM['geo']['subs']): parts.append(dict(pos=hp[i],idx=s['idx'],uv=s['uv0'],tex=skin,alpha=0))
 def basemorph(fn,w):
     M=morph.load(U+fn); n=[t['name'] for t in M['d']['targets']]; return M,morph.apply(M,{k:v for k,v in w.items() if k in n})
+import names
+_ea=modres.AR['HighTech_Eyes_pack']; _ef={f['hash']:f for f in _ea.files}
+EYE=xbm.load(_ea.extract(_ef[names.fnv('base\\eyes\\textures\\eye_14_diffuse.xbm')])).convert('RGBA'); EYE.save('/home/claude/work/staging/eye14.png')
 EM,ep=basemorph('he_000_pma__morphs.morphtarget',W)
 for i,s in enumerate(EM['geo']['subs']):
     if i==1: continue
-    parts.append(dict(pos=ep[i],idx=s['idx'],uv=s['uv0'],color=(25,22,22) if i==0 else (200,40,40)))
+    if i==0: parts.append(dict(pos=ep[i],idx=s['idx'],uv=s['uv0'],color=(25,22,22)))
+    else: parts.append(dict(pos=ep[i],idx=s['idx'],uv=s['uv0'],tex=EYE,alpha=0))
 BM,bp=basemorph('heb_000_pma__morphs.morphtarget',W)
 bw=np.asarray(xbm.load(cr2w.load_loose('/mnt/user-data/uploads/characters/common/character_customisation_items/eyebrows/textures/heb__base_d08.xbm')).convert('RGBA')).astype(float)
 g=bw[...,:3].mean(-1,keepdims=True)/255                      # hair strand shading, black_carbon tint
