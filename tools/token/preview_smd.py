@@ -18,7 +18,7 @@ def build(files,out):
         for m,(P,U,N) in read_smd(K+'modelsrc/'+f).items():
             P=np.array(P)/39.37; P=np.stack([-P[:,1],P[:,0],P[:,2]],1); U=np.array(U); N=np.array(N); N=np.stack([-N[:,1],N[:,0],N[:,2]],1)   # Valve (x fwd, y left, z up, inches) -> CP-like (x right, y fwd, z up, m); glb writer maps to glTF
             if m not in M:
-                t=K+'materialsrc/%s.tga'%m; im=Image.open(t).convert('RGBA') if os.path.exists(t) else None
+                import re; t=K+'materialsrc/%s.tga'%re.sub(r'_L\d+$','',m); im=Image.open(t).convert('RGBA') if os.path.exists(t) else None
                 vm=open(K+'materials/%s.vmt'%m).read() if os.path.exists(K+'materials/%s.vmt'%m) else ''
                 a='BLEND' if '$translucent' in vm else ('MASK' if '$alphatest' in vm else 'OPAQUE')
                 M[m]=G.material(m,base=im,alpha=a,cutoff=0.45,double='$nocull' in vm,rough=0.3 if 'envmap' in vm else 0.7,metal=0.8 if 'envmap' in vm else 0)

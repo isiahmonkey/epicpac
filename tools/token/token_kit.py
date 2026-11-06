@@ -52,9 +52,10 @@ BLACKMETAL=' "$envmap" "env_cubemap"\n "$envmaptint" "[.07 .07 .075]"\n "$phong"
 BLACKMETAL_N=' "$bumpmap" "{D}/{M}_n"\n'+BLACKMETAL
 CARDS_DARK=' "$alphatest" "1"\n "$alphatestreference" "0.4"\n "$allowalphatocoverage" "1"\n "$nocull" "1"\n "$phong" "1"\n "$phongexponent" "10"\n "$phongboost" "0.12"\n'
 EYES=' "$selfillum" "1"\n "$selfillumtint" "[2.2 2.2 2.2]"\n "$phong" "1"\n "$phongexponent" "60"\n "$phongboost" "1"\n'
+HAIR=' "$bumpmap" "{D}/{M}_n"\n "$alphatest" "1"\n "$alphatestreference" "0.4"\n "$allowalphatocoverage" "1"\n "$nocull" "1"\n'
 VMT_OVERRIDE={'cyberware':BLACKMETAL,'ga_cyber':BLACKMETAL,'ga_fingers':BLACKMETAL,'ga_end':BLACKMETAL,'earcyber':BLACKMETAL,'piercing':BLACKMETAL,
  'facecw_face':BLACKMETAL_N,'facecw_nose':BLACKMETAL_N,'eyes':EYES,
- 'hair':CARDS_DARK,'hatfur':CARDS_DARK,'brows':CARDS_DARK,'brows_s7':CARDS_DARK,'brows_s14':CARDS_DARK,'lashes':CARDS_DARK,
+ 'hair':HAIR,'hatfur':HAIR,'brows':CARDS_DARK,'brows_s7':CARDS_DARK,'brows_s14':CARDS_DARK,'lashes':CARDS_DARK,
  'haircap':CARDS_DARK.replace('"0.4"','"0.12"'),'bolero_ml':LEATHER,'bolerocuff_ml':LEATHER,'chain_silver':SILVER,'earring':SILVER,'nd_acc':SILVER,'vchain':SILVER,'vcross':SILVER}
 DARKEN={'hair':0.55,'hatfur':0.5,'haircap':0.6,'brows':0.6,'brows_s7':0.6,'brows_s14':0.6,'chain_silver':0.38,'earring':0.38,'nd_acc':0.38,'vchain':0.38,'vcross':0.38}   # polished metal: dark diffuse, the shine comes from the cubemap
 BODY_MODEL='token_body'; KEEP=False; KITZIP='token_kit.zip'; PACZIP='token_pac3.zip'; BATNAME='compile_token.bat'
@@ -132,6 +133,10 @@ NORMALS={  # extra normal maps where they carry the look
  'arms':'/home/claude/work/tex/base/a0_000_ma_base__hq_nd01.png',
  'facecw_face':'/home/claude/work/tex/base/hx_cyberware_13_m02.png','facecw_nose':'/home/claude/work/tex/base/hx_cyberware_13_d02.png'}
 CAP=None
+DERIVED_NORMAL={'hair':6.0,'hatfur':4.0}
+# name -> [(offset mm, alphatest ref or None = same material)]
+SHELLS={'facecw_face':[(0.4*k,None) for k in range(1,7)],'facecw_nose':[(0.4*k,None) for k in range(1,7)],
+        'brows':[(0.3,0.36),(0.6,0.44),(0.9,0.52),(1.2,0.6),(1.5,0.68)]}
 def tuck_under_cap(vp,inset=0.2):
     """neck cyberware pieces that rise onto the back of the skull: pull them just under the hair cap so the locs lie over them"""
     from scipy.spatial import cKDTree
@@ -173,7 +178,11 @@ def main():
         if c not in ('cards','decal','glass') and not has_a: im=im.convert('RGB')
         im.save(KIT+'materialsrc/%s_%s.tga'%(NAME,nm)); open(KIT+'materialsrc/%s_%s.txt'%(NAME,nm),'w').write('nocompress 0\n')
         A=''
-        if nm in NORMALS and os.path.exists(NORMALS[nm]):
+        if nm in DERIVED_NORMAL:   # strand-level relief from the albedo itself (breaks the smooth 'plastic' look of hair geometry)
+            g=np.asarray(im.convert('L').resize((1024,1024),Image.LANCZOS)).astype(np.float32)/255*DERIVED_NORMAL[nm]
+            gx=np.roll(g,-1,1)-np.roll(g,1,1); gy=np.roll(g,-1,0)-np.roll(g,1,0); n=np.dstack([-gx,-gy,np.ones_like(g)]); n/=np.linalg.norm(n,axis=2,keepdims=True)
+            Image.fromarray(((n*0.5+0.5)*255).astype(np.uint8)).save(KIT+'materialsrc/%s_%s_n.tga'%(NAME,nm)); open(KIT+'materialsrc/%s_%s_n.txt'%(NAME,nm),'w').write('nocompress 0\nnormal 1\n')
+        elif nm in NORMALS and os.path.exists(NORMALS[nm]):
             nrm_rgb(NORMALS[nm],size=(1024,1024)).save(KIT+'materialsrc/%s_%s_n.tga'%(NAME,nm)); open(KIT+'materialsrc/%s_%s_n.txt'%(NAME,nm),'w').write('nocompress 0\nnormal 1\n')
         elif c in ('skin_head','skin_body','skin_arms'): c='cloth'
         if c in ('metal','cloth') and has_a: A=' "$alphatest" "1"\n "$alphatestreference" "0.45"\n'
@@ -202,6 +211,15 @@ def main():
                 bad=(np.cross(b-a,c-a)*vn_[Fi].sum(1)).sum(1)<0; Fi[bad]=Fi[bad][:,[0,2,1]]; flip=False   # each triangle faces the way its normals point (Source culls back faces)
                 emit_mat(nm,p)
                 T+=smd.part_tris(vp,vn_,p['uv'][used],Fi.ravel(),lk,'%s_%s'%(NAME,nm),flip=flip)
+                if nm in SHELLS:   # stacked offset shells: real thickness for flat plates / brow hair (fur-shell technique)
+                    hc=RT.NW[RT.vn.index('ValveBiped.Bip01_Head1')][:3,3]+np.array([1.5,0,3.5])
+                    up=vp-hc; up/=np.linalg.norm(up,axis=1,keepdims=True)
+                    for k,(off_mm,ref) in enumerate(SHELLS[nm]):
+                        mat='%s_%s'%(NAME,nm) if ref is None else '%s_%s_L%d'%(NAME,nm,k)
+                        if ref is not None and mat not in texdone:
+                            texdone.add(mat)
+                            open(KIT+'materials/%s.vmt'%mat,'w',newline='\r\n').write('"VertexLitGeneric"\n{\n "$basetexture" "%s/%s_%s"\n%s}\n'%(MATDIR,NAME,nm,VMT_OVERRIDE[nm].replace('"0.4"','"%.2f"'%ref)))
+                        T+=smd.part_tris(vp+up*off_mm/25.4,vn_,p['uv'][used],Fi.ravel(),lk,mat,flip=flip)
         return T
     for model,groups in LAYOUT.items():
         qc=['$modelname "player/%s/%s.mdl"'%(NAME,model),'$cdmaterials "%s/"'%MATDIR,'$surfaceprop "flesh"','$model "%s_bind" "%s_bind.smd"'%(model,model)]
