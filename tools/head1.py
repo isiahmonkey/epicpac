@@ -278,7 +278,7 @@ if os.environ.get('PIERCING','1')=='1':
             m_=roots==r_; c_=p[m_].mean(0,keepdims=True); q[m_]=p[m_]+(warp_from_vanilla(c_)-c_)
         parts.append(dict(pos=q,idx=sb['idx'],uv=sb['uv0'],color=(18,18,20),tex=Image.new('RGBA',(4,4),(16,16,18,255)),alpha=0,name='piercing'))
 # ---- ANRUI "Maine" face cyberware (MeshM, own morphtarget -> follows the face shape); colour set via MAINE env
-MAINE=os.environ.get('MAINE','')
+MAINE=os.environ.get('MAINE','Color/Black Line/ANRUI_Maine_Cyberware_Color_BRed.archive')
 if MAINE:
     import rdar as _rd4
     _MA='/mnt/user-data/uploads/V_Gmod/New Mods/ARCHIVES/'
@@ -290,6 +290,7 @@ if MAINE:
     _MM=dict(segs=_b,r=_r,d=_d,md=_md,geo=mesh.decode(_b,lod=1,blob=_md['baseBlob'][1]))
     _nm=[t['name'] for t in _d['targets']]; _mp=safe_apply(_MM,{a_:b_ for a_,b_ in W.items() if a_ in _nm})
     MAINE_D=xbm.load(_rd4.Archive(_MA+MAINE).extract([f for f in _rd4.Archive(_MA+MAINE).files][0])).convert('RGBA')
+    _mA=np.asarray(MAINE_D).copy(); _mA[...,3]=np.where(_mA[...,3]<12,0,_mA[...,3]); MAINE_D=Image.fromarray(_mA,'RGBA')   # kill faint white haze
     for i,sb in enumerate(_MM['geo']['subs']):
         q=warp_from_vanilla(_mp[i]); q,_l=float_on(q,hp[0],HM['geo']['subs'][0]['idx'],gap=0.0005)
         parts.append(dict(pos=q,idx=sb['idx'],uv=sb['uv0'],tex=MAINE_D,alpha=2,name='maine'))
