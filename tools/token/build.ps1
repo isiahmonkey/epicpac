@@ -24,7 +24,7 @@ $cacheFile = Join-Path $KIT '.cache\hashes.json'
 New-Item -ItemType Directory -Force (Split-Path $cacheFile) | Out-Null
 $cache = @{}
 if (Test-Path $cacheFile) { (Get-Content $cacheFile -Raw | ConvertFrom-Json).PSObject.Properties | ForEach-Object { $cache[$_.Name] = $_.Value } }
-function H([string[]]$files) { ($files | ForEach-Object { if (Test-Path $_) { (Get-FileHash $_ -Algorithm MD5).Hash } else { 'missing' } }) -join '' }
+function Get-SrcHash([string[]]$files) { ($files | ForEach-Object { if (Test-Path $_) { (Get-FileHash $_ -Algorithm MD5).Hash } else { 'missing' } }) -join '' }
 function RunParallel($jobs, [int]$max) {   # jobs: list of @{exe; args; name}
   $running = @()
   foreach ($j in $jobs) {
@@ -40,7 +40,7 @@ $cpu = [Math]::Max(2, [Environment]::ProcessorCount - 1)
 New-Item -ItemType Directory -Force $SRC, $MD, $MO, (Join-Path $KIT 'logs') | Out-Null
 $tex = @()
 foreach ($t in Get-ChildItem (Join-Path $KIT 'materialsrc') -Filter *.tga) {
-  $txt = [IO.Path]::ChangeExtension($t.FullName, '.txt'); $key = 'tex:' + $t.BaseName; $h = H @($t.FullName, $txt)
+  $txt = [IO.Path]::ChangeExtension($t.FullName, '.txt'); $key = 'tex:' + $t.BaseName; $h = Get-SrcHash @($t.FullName, $txt)
   $vtf = Join-Path $MD ($t.BaseName + '.vtf')
   if ($cache[$key] -ne $h -or !(Test-Path $vtf)) {
     Copy-Item $t.FullName, $txt $SRC -Force
@@ -61,7 +61,7 @@ Copy-Item (Join-Path $KIT 'materials\*.vmt') $MD -Force
 $mdl = @()
 foreach ($q in Get-ChildItem (Join-Path $KIT 'modelsrc') -Filter *.qc) {
   $refs = Select-String -Path $q.FullName -Pattern '"([^"]+\.smd)"' -AllMatches | ForEach-Object { $_.Matches } | ForEach-Object { Join-Path (Join-Path $KIT 'modelsrc') $_.Groups[1].Value } | Sort-Object -Unique
-  $key = 'mdl:' + $q.BaseName; $h = H (@($q.FullName) + $refs); $out = Join-Path $MO ($q.BaseName + '.mdl')
+  $key = 'mdl:' + $q.BaseName; $h = Get-SrcHash (@($q.FullName) + $refs); $out = Join-Path $MO ($q.BaseName + '.mdl')
   if ($cache[$key] -ne $h -or !(Test-Path $out)) {
     if (Test-Path $out) { Remove-Item $out }
     $mdl += @{ exe = $MDLC; args = @('-nop4','-game',"`"$GAME`"","`"$($q.FullName)`""); log = (Join-Path $KIT "logs\studiomdl_$($q.BaseName).txt"); key = $key; h = $h; out = $out }
