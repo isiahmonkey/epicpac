@@ -28,6 +28,10 @@ M={'skin':G.material('skin',base=skin.convert('RGB'),color=(0.85,0.85,0.85,1),no
 if FACE_CW:
     for _k,v in FACECW.items(): M['facecw_'+_k]=G.material('facecw_'+_k,base=v['base'],normal=glb.cp_normal(v['normal']),mr=glb.mr_map(v['rough'],v['metal']),alpha='BLEND',ext={'order':2})
 if MAINE: M['maine']=G.material('maine',base=MAINE_D,alpha='BLEND',rough=0.35,metal=0.3,ext={'order':0})
+if BODY:
+    M['body']=G.material('body',base=BODY_D.convert('RGB'),normal=glb.cp_normal(BODY_N),nscale=0.8,color=(0.85,0.85,0.85,1),rough=0.62,ext={'skin':1.0})
+    M['arms']=G.material('arms',base=ARMS_D.convert('RGB'),normal=glb.cp_normal(ARMS_N),nscale=0.8,color=(0.85,0.85,0.85,1),rough=0.62,ext={'skin':1.0})
+    M['nails']=G.material('nails',color=(0.07,0.045,0.035,1),rough=0.3)
 for p in parts:
     if p['name'] not in M: continue
     G.mesh(p['name'],p['pos'],p['idx'],p['uv'],M[p['name']])

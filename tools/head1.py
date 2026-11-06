@@ -294,6 +294,21 @@ if MAINE:
     for i,sb in enumerate(_MM['geo']['subs']):
         q=warp_from_vanilla(_mp[i]); q,_l=float_on(q,hp[0],HM['geo']['subs'][0]['idx'],gap=0.0005)
         parts.append(dict(pos=q,idx=sb['idx'],uv=sb['uv0'],tex=MAINE_D,alpha=2,name='maine'))
+# ---- BODY: player_man_average base body (censored skin texture) + HQ arms + nails, graded to the same deep tone as the head
+BODY=os.environ.get('BODY','0')=='1'
+if BODY:
+    _B='/mnt/user-data/uploads/characters/common/player_base_bodies/player_man_average/'; _TB='/home/claude/work/tex/base/'
+    _tone=GRADE.get(TONE,(66,42,30))
+    BODY_D=grade(Image.open(_TB+'t0_000_ma__c_base_d03_censored.png').convert('RGBA'),_tone)
+    ARMS_D=grade(Image.open(_TB+'a0_000_ma__c_base_hq_d01.png').convert('RGBA'),_tone)
+    BODY_N=Image.open(_TB+'t0_000_ma__c_base_n03_censored.png').convert('RGB'); ARMS_N=Image.open(_TB+'a0_000_ma_base__hq_nd01.png').convert('RGB')
+    for s_ in mesh.decode(cr2w.load_loose(_B+'t0_000_pma_base__full.mesh'))['subs']:
+        parts.append(dict(pos=s_['pos'],idx=s_['idx'],uv=s_['uv0'],tex=BODY_D,alpha=0,name='body'))
+    for side in 'lr':
+        for k_,s_ in enumerate(mesh.decode(cr2w.load_loose(_B+'arms_hq/a0_000_pma_base_hq__%s.mesh'%side))['subs'][:3]):
+            parts.append(dict(pos=s_['pos'],idx=s_['idx'],uv=s_['uv0'],tex=ARMS_D,alpha=0,name='arms'))
+        for s_ in mesh.decode(cr2w.load_loose(_B+'arms_hq/nails/a0_000_pma_base__nails_%s.mesh'%side))['subs']:
+            parts.append(dict(pos=s_['pos'],idx=s_['idx'],uv=s_['uv0'],tex=Image.new('RGBA',(4,4),(74,52,44,255)),alpha=0,name='nails'))
 # Takemura neck cyberware: ml_h1_001_ma_cyberware__takemura.mlsetup baked (titanium / cast iron / enamel / red tech plastic)
 CWA=np.asarray(Image.open('/home/claude/work/staging/cw_albedo.png').convert('RGB')).astype(np.float32)
 _met=np.asarray(Image.open('/home/claude/work/staging/cw_metal.png')).astype(np.float32)[...,None]/255
