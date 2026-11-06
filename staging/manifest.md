@@ -11,6 +11,7 @@ Source preset: `takemura hades edition.preset` (40 options, resolved against `ma
 | Eyes | eye_14 (overrides preset eye colour) | HighTech_Eyes_pack |
 | Brows | style 08, black_carbon | base |
 | Scars | face scar 02 | base |
+| Ear cyberware | ANRUI ear shell, Black, metal full / rough half / OG normals; skin tucked under, lifted over neck piece | ANRUI_MEarCyberware_Base + Customization |
 | Hair | Half Bun Dreads (Male V), black_carbon (overrides preset hair) | Half_Bun_DreadsMale_V |
 | Hat | axellysse fur hat, black_carbon | axellysse_fur_collection |
 | Coat (maybe) | axellysse fur jacket, black_carbon | axellysse_fur_collection |

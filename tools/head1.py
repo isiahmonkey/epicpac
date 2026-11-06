@@ -141,8 +141,32 @@ EAR_N=_anx('Normals/ANRUI_EarCyberware_Normals_OG.archive',0).convert('RGB')
 EAR_M=_anx('Metalness/ANRUI_EarCyberware_Metalness_Full.archive').convert('L'); EAR_R=_anx('Roughness/ANRUI_EarCyberware_Roughness_Half.archive').convert('L')
 _ea7=modres.AR['ANRUI_MEarCyberware_Base_07']; _ec=[f for f in _ea7.files if cr2w.parse(_ea7.extract(f)[0])['chunks'][0][0]=='CMesh'][0]
 EARG=mesh.decode(_ea7.extract(_ec))
+_EA=np.asarray(EAR_D)[...,3]
+def tuck_under(H,P,uv,idx,gap=0.0015,reach=0.012):
+    # skin under a cyber shell: any head vertex sitting above the visible shell surface is pushed just beneath it
+    t=idx.reshape(-1,3); h,w=_EA.shape
+    vis=_EA[np.clip((uv[:,1]%1*h).astype(int),0,h-1),np.clip((uv[:,0]%1*w).astype(int),0,w-1)]>100
+    if not vis.any(): return H,0
+    pn=vnormals(P,idx); c=H.mean(0); pn*=np.sign(((P-c)*pn).sum(1,keepdims=True)+1e-12)   # outward from the head
+    tv=t[vis[t].all(1)]                                   # densify: sample points across every visible shell triangle
+    bc=np.array([(a,b,1-a-b) for a in np.linspace(0,1,6) for b in np.linspace(0,1,6) if a+b<=1.0001])
+    V=np.einsum('kj,tjd->tkd',bc,P[tv]).reshape(-1,3); N=np.einsum('kj,tjd->tkd',bc,pn[tv]).reshape(-1,3); N/=np.linalg.norm(N,axis=1,keepdims=True)
+    _hn=vnormals(H,HM['geo']['subs'][0]['idx']); _j=cKDTree(H).query(V)[1]; N=np.where(((N*_hn[_j]).sum(1)<0)[:,None],-N,N)   # orient by the skin it covers
+    T=cKDTree(V); d,i=T.query(H)
+    m=(d<reach)&(np.abs(H[:,0])>0.055); hgt=((H[m]-V[i[m]])*N[i[m]]).sum(1)   # height of skin above shell (ear region only)
+    mv=hgt>-gap; idxm=np.nonzero(m)[0][mv]
+    H=H.copy(); H[idxm]-=N[i[idxm]]*(hgt[mv]+gap)[:,None]; return H,len(idxm)
 for s in EARG['subs']:
-    q=warp_from_vanilla(s['pos']); q,_l=float_on(q,hp[0],HM['geo']['subs'][0]['idx'],gap=0.0004)
+    q=warp_from_vanilla(s['pos']); q,_l=float_on(q,hp[0],HM['geo']['subs'][0]['idx'],gap=0.0012)
+    hp[0],_n=tuck_under(hp[0],q,s['uv0'],s['idx']); print('ear: skin verts tucked under shell',_n)
+    # the Takemura neck piece reaches up behind the ear lobe and pokes through the shell: lift the shell over it
+    _cp=cy['subs'][0]['pos']; _near=np.nonzero(cKDTree(_cp).query(q)[0]<0.006)[0]
+    if len(_near):
+        _cn=vnormals(_cp,cy['subs'][0]['idx']); _c=hp[0].mean(0); _cn*=np.sign(((_cp-_c)*_cn).sum(1,keepdims=True)+1e-12)
+        dd,ii=cKDTree(_cp).query(q[_near],k=6); w_=1/(dd+1e-6); w_/=w_.sum(1,keepdims=True)
+        sp=(_cp[ii]*w_[...,None]).sum(1); sn=(_cn[ii]*w_[...,None]).sum(1); sn/=np.linalg.norm(sn,axis=1,keepdims=True)
+        hh=((q[_near]-sp)*sn).sum(1); lift=np.clip(0.0008-hh,0,0.006); q[_near]+=sn*lift[:,None]; print('ear: shell verts lifted over neck cyberware',int((lift>0).sum()))
+    parts[0]['pos']=hp[0]
     parts.append(dict(pos=q,idx=s['idx'],uv=s['uv0'],tex=EAR_D,alpha=2,name='earcyber'))
 # Takemura neck cyberware: ml_h1_001_ma_cyberware__takemura.mlsetup baked (titanium / cast iron / enamel / red tech plastic)
 CWA=np.asarray(Image.open('/home/claude/work/staging/cw_albedo.png').convert('RGB')).astype(np.float32)

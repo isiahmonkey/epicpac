@@ -17,7 +17,7 @@ M={'skin':G.material('skin',base=skin.convert('RGB'),color=(0.85,0.85,0.85,1),no
    'eyeshadow':G.material('eyeshadow',base=SHADOW,alpha='BLEND',rough=1.0,ext={'order':0}),
    'lashes':G.material('lashes',base=LASH,alpha='MASK',cutoff=0.25,rough=1.0,double=True,ext={'nospec':1}),
    'brows':G.material('brows',base=bt,alpha='BLEND',rough=1.0,double=True,ext={'order':1}),
-   'earcyber':G.material('earcyber',base=EAR_D,normal=glb.cp_normal(EAR_N),mr=glb.mr_map(EAR_R.resize((1024,1024)),EAR_M.resize((1024,1024))),alpha='MASK',cutoff=0.5),
+   'earcyber':G.material('earcyber',base=EAR_D,normal=glb.cp_normal(EAR_N),mr=glb.mr_map(EAR_R.resize((1024,1024)),EAR_M.resize((1024,1024))),alpha='MASK',cutoff=0.3),
    'cyberware':G.material('cyberware',base=cw_base,normal=cw_n,mr=cw_mr)}
 for p in parts: G.mesh(p['name'],p['pos'],p['idx'],p['uv'],M[p['name']])
 print('glb bytes',G.save(sys.argv[1] if len(sys.argv)>1 else S+'stage_head.glb'))
