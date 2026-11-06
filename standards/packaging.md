@@ -34,7 +34,7 @@ Every separate clothing / accessory piece is its own **bodygroup**: one submodel
 
 ## Outfit PACs
 - Every outfit includes the base body (head, Gorilla arms, Keelan locs, all cyberware, face, ears) **plus the fur hat**.
-- outfit1: Misfits tank, black leather bolero, Edgerunner denim pants (PinkyDude Denim Edgerunner), vinyl platforms (black), silver wallet chain, Valentino silver necklace. Build: `tools/token/outfit.py outfit1`. The necklace is re-fitted per outfit (stage_skin with only that outfit's clothes), so it rests on what that outfit actually wears.
+- outfit1: Misfits tank, black leather bolero, Edgerunner denim pants (PinkyDude Denim Edgerunner), vinyl platforms (black), silver wallet chain (necklace removed 2026-11-06). Build: `tools/token/outfit.py outfit1`. The necklace is re-fitted per outfit (stage_skin with only that outfit's clothes), so it rests on what that outfit actually wears.
 
 ## Fast iteration (token_build)
 - Two models per outfit PAC: `token_base` (head, arms, hair, hat, cyberware, face, ears, skin regions; built once, shared) + `token_<outfit>` (that outfit's clothes and jewelry only). The outfit PAC hides covered base skin regions with bodygroups (plans/<outfit>.json `hide_skin`).

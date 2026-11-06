@@ -6,11 +6,11 @@ Everything lands in /mnt/user-data/outputs/token_build/ ; plans/<id>.json says w
 import sys, os, json, token_kit as K
 OUT='/mnt/user-data/outputs/token_build/'
 OUTFITS={
- 'outfit1':dict(desc='Misfits tank, black leather bolero, Edgerunner denim pants, vinyl platforms, wallet chain, Valentino silver necklace',
+ 'outfit1':dict(desc='Misfits tank, black leather bolero, Edgerunner denim pants, vinyl platforms, wallet chain',
    staged='/home/claude/work/token/staged_outfit1.pkl',
    hide_skin=['pelvis','thighs','calves','feet'],      # base skin regions covered by this outfit
    pieces={'torso_inner':'misfits_tank','torso_outer':'bolero_black','legs':'denim_pants','feet':'vinyl_platform_black',
-           'legs_acc':'wallet_chain_silver','neck_jewelry':'valentino_cross_silver'}),
+           'legs_acc':'wallet_chain_silver'}),
 }
 oid=sys.argv[1]
 allopts={g:o for m in K.LAYOUT.values() for g,o in m.items()}
