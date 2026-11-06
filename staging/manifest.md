@@ -6,7 +6,7 @@ Source preset: `takemura hades edition.preset` (40 options, resolved against `ma
 |---|---|---|
 | Head mesh | Hades Edition head (re-sculpted, 6,864 verts) | Hades_Edition_Takemura_Cyberware__Head |
 | Face shape | eyes h141, nose h102, mouth h143, jaw h034 (vanilla deltas transferred by nearest vertex) | base morphs |
-| Neck cyberware | Takemura / Arasaka agent neck (57k verts, multilayered) | Hades_Edition_Takemura_Cyberware__Head |
+| Neck cyberware | Takemura neck (57k verts, multilayered), recoloured black + red (iron/steel/titanium layers -> black, red enamel kept) | Hades_Edition_Takemura_Cyberware__Head |
 | Skin | 05_bl_espresso (overrides preset pale), skin type 01 detail (basehead_d01); alt 06_bl_dark | base |
 | Eyes | eye_14 (overrides preset eye colour) | HighTech_Eyes_pack |
 | Brows | style 08, black_carbon | base |
