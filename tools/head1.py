@@ -205,6 +205,7 @@ else:   # MELUMINARY CCXL "Keelan" top locs (ArchiveXL @long/@cap dynamic materi
     _cd=_L(_kx(_K+'hh_201_wa__dawn_cap_d02.xbm')); HAIR_CAP=hair_cap(_cd,_L(_kx(_K+'hh_201_wa__dawn_cap_mask.xbm'),_cd.shape[::-1]))
     _km=lambda p: mesh.decode(_ka.extract(_kf[names.fnv(p.lower())]))['subs']
     HSUBS=[(_km('base\\mel_ccxl_hair\\meshes\\keelan001_hair_pt1.mesh')[0],'hair'),(_km('base\\mel_ccxl_hair\\meshes\\keelan001_hair_pt2.mesh')[0],'haircap')]
+if os.environ.get('HIDE_HAIR','0')=='1': HSUBS=[]
 for _s,_nm in HSUBS:
     q=warp_from_vanilla(_s['pos'],k=6)
     if _nm=='haircap': q,_l=float_on(q,hp[0],HM['geo']['subs'][0]['idx'],gap=0.0005)
@@ -221,6 +222,19 @@ _d=(warp_from_vanilla(_ER['pos'][_top])-_ER['pos'][_top]).mean(0)
 EARRING_LIFT=float(os.environ.get('EARRING_LIFT','0.005'))          # hoop up into the lobe so it reads as pierced
 _q=_ER['pos']+_d+np.array([0,0,EARRING_LIFT])
 parts.append(dict(pos=_q,idx=_ER['idx'],uv=_ER['uv0'],tex=Image.open('/home/claude/work/staging/ear06_albedo.png').convert('RGBA'),alpha=0,name='earring'))
+# ---- axellysse fur hat (hat_fur_m_base_body.mesh), black_carbon: fur cards on hair.mt (hh_short01 + black_carbon.hp) + cap
+HAT=os.environ.get('HAT','1')=='1'
+if HAT:
+    _fa=modres.AR['axellysse_fur_collection']; _ff={f['hash']:f for f in _fa.files}
+    _hat=mesh.decode(_fa.extract(_ff[names.fnv('axellysse\\fur_collection\\mesh\\hat_fur_m_base_body.mesh')]))['subs']
+    _fla=_hl('textures/hh_short01_alpha01_r.xbm'); _fsz=_fla.shape[::-1]
+    HAT_CARDS=hair_cards(_fla,_hl('textures/hh_short01_id01_r.xbm',_fsz),_hl('textures/hh_short01_grad01_r.xbm',_fsz))
+    _capm=os.path.exists('/mnt/user-data/uploads/characters/garment/citizen_fashion/torso/t1_104_dress__golden/textures/t1_104_wa_dress__golden_black_carbon__cap.mi')
+    HAT_CAP=Image.new('RGBA',(64,64),tuple(int(x) for x in _gm[len(_gm)//3])+(255,))   # placeholder until the t1_104 cap material is pulled
+    for _k,_s in enumerate(_hat):
+        q=warp_from_vanilla(_s['pos'],k=6)
+        if _k==0: q,_l=float_on(q,hp[0],HM['geo']['subs'][0]['idx'],gap=0.0008)
+        parts.append(dict(pos=q,idx=_s['idx'],uv=_s['uv0'],tex=HAT_CAP if _k==0 else HAT_CARDS,alpha=0 if _k==0 else 2,name='hatcap' if _k==0 else 'hatfur'))
 # Takemura neck cyberware: ml_h1_001_ma_cyberware__takemura.mlsetup baked (titanium / cast iron / enamel / red tech plastic)
 CWA=np.asarray(Image.open('/home/claude/work/staging/cw_albedo.png').convert('RGB')).astype(np.float32)
 _met=np.asarray(Image.open('/home/claude/work/staging/cw_metal.png')).astype(np.float32)[...,None]/255

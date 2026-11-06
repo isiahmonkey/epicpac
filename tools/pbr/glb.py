@@ -6,7 +6,7 @@ def vnormals(p,t):
     n=np.cross(p[t[:,2]]-p[t[:,0]],p[t[:,1]]-p[t[:,0]])     # CP winding is clockwise -> this cross is outward
     vn=np.zeros_like(p)
     for k in range(3): np.add.at(vn,t[:,k],n)
-    return vn/np.maximum(np.linalg.norm(vn,axis=1,keepdims=True),1e-12)
+    vn=vn/np.maximum(np.linalg.norm(vn,axis=1,keepdims=True),1e-12); bad=~np.isfinite(vn).all(1)|(np.abs(vn).sum(1)<1e-6); vn[bad]=[0,0,1]; return vn
 class GLB:
     def __init__(s): s.bin=bytearray(); s.j=dict(asset=dict(version='2.0',generator='epicpac staging'),scenes=[dict(nodes=[])],scene=0,nodes=[],meshes=[],materials=[],textures=[],images=[],samplers=[dict(magFilter=9729,minFilter=9987,wrapS=10497,wrapT=10497)],accessors=[],bufferViews=[]); s._img={}; s._keep={}
     def _view(s,data,target=None):

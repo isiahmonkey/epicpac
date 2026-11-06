@@ -21,6 +21,10 @@ M={'skin':G.material('skin',base=skin.convert('RGB'),color=(0.85,0.85,0.85,1),no
    'hair':G.material('hair',base=HAIR_CARDS,alpha='MASK',cutoff=0.5,rough=0.55,double=True,ext={'hair':1}),
    'haircap':G.material('haircap',base=HAIR_CAP,alpha='BLEND',rough=0.8,ext={'order':0}),
    'earring':G.material('earring',base=Image.open(S+'ear06_albedo.png').convert('RGB'),mr=glb.mr_map(Image.open(S+'ear06_rough.png').convert('L'),Image.open(S+'ear06_metal.png').convert('L'))),
+   'hatfur':G.material('hatfur',base=HAT_CARDS,alpha='MASK',cutoff=0.4,rough=0.6,double=True,ext={'hair':1}),
+   'hatcap':G.material('hatcap',base=HAT_CAP.convert('RGB'),rough=0.9),
    'cyberware':G.material('cyberware',base=cw_base,normal=cw_n,mr=cw_mr)}
-for p in parts: G.mesh(p['name'],p['pos'],p['idx'],p['uv'],M[p['name']])
+for p in parts:
+    if p['name'] not in M: continue
+    G.mesh(p['name'],p['pos'],p['idx'],p['uv'],M[p['name']])
 print('glb bytes',G.save(sys.argv[1] if len(sys.argv)>1 else S+'stage_head.glb'))
