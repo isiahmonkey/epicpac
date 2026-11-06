@@ -1,3 +1,5 @@
+# Token - staging manifest (character formerly "Male V")
+
 # STAGING manifest — Takemura Hades Edition V
 
 Source preset: `takemura hades edition.preset` (40 options, resolved against `male_cco.inkcharcustomization`).
