@@ -44,7 +44,7 @@ def safe_apply(M,w):
             if ci<len(pos): ok=idx<len(pos[ci]); pos[ci][idx[ok]]+=v*dl[ok]
     return pos
 hp=transfer(HM,{k:v for k,v in W.items() if k in tn}) if os.environ.get('MORPH','1')=='2' else safe_apply(HM,{k:v for k,v in W.items() if k in tn}) if os.environ.get('MORPH','1')=='1' else [s['pos'] for s in HM['geo']['subs']]
-for i,s in enumerate(HM['geo']['subs']): parts.append(dict(pos=hp[i],idx=s['idx'],uv=s['uv0'],tex=skin,alpha=0))
+for i,s in enumerate(HM['geo']['subs']): parts.append(dict(pos=hp[i],idx=s['idx'],uv=s['uv0'],tex=skin,alpha=0,name='skin'))
 def basemorph(fn,w):
     M=morph.load(U+fn); n=[t['name'] for t in M['d']['targets']]; return M,morph.apply(M,{k:v for k,v in w.items() if k in n})
 import names
@@ -85,18 +85,18 @@ def clear_eyes(H,eye,gap=0.0004):
         m=(d<R+gap)&(v[:,1]>-0.25*R)                      # front half only (the socket behind stays)
         H[m]=c+v[m]/d[m,None]*(R+gap); n+=int(m.sum())
     return H,n
-if os.environ.get('MORPH','1')=='2':
+if os.environ.get('MORPH','1')=='2' and os.environ.get('CLEAR','1')=='1':
     hp[0],_n=clear_eyes(hp[0],ep[2]); print('lid verts pushed off eyeballs',_n)
 _sm=np.asarray(Image.open('/home/claude/work/tex/base/eye_shadow_mask.png')).astype(float)
 SHADOW=Image.fromarray(np.dstack([np.full(_sm.shape[:2],8),np.full(_sm.shape[:2],6),np.full(_sm.shape[:2],6),np.clip(_sm[...,0]/255*0.92,0,1)*255]).astype(np.uint8),'RGBA')
 for i,s in enumerate(EM['geo']['subs']):
     if i==1:   # eye shadow / wetness shell: occlusion in the corners and under the lid (eyeshadow_base.mi, R channel)
-        parts.append(dict(pos=ep[i],idx=s['idx'],uv=s['uv0'],tex=SHADOW,alpha=2)); continue
+        parts.append(dict(pos=ep[i],idx=s['idx'],uv=s['uv0'],tex=SHADOW,alpha=2,name='eyeshadow')); continue
     if i==0:
         _l=Image.open('/home/claude/work/tex/base/eyelashes_ma_01_lod1.png'); _L=np.asarray(_l.convert('L')).astype(float); _al=np.asarray(_l)[...,3].astype(float) if _l.mode=='RGBA' else np.clip(_L/max(_L.max(),1)*1.15,0,1)*255
         LASH=Image.fromarray(np.dstack([np.full(_L.shape,14),np.full(_L.shape,12),np.full(_L.shape,12),_al]).astype(np.uint8),'RGBA')
-        parts.append(dict(pos=ep[i],idx=s['idx'],uv=s['uv0'],tex=LASH,alpha=2))
-    else: parts.append(dict(pos=ep[i],idx=s['idx'],uv=s['uv0'],tex=EYE,alpha=0,emit=EYE_EMIT))
+        parts.append(dict(pos=ep[i],idx=s['idx'],uv=s['uv0'],tex=LASH,alpha=2,name='lashes'))
+    else: parts.append(dict(pos=ep[i],idx=s['idx'],uv=s['uv0'],tex=EYE,alpha=0,emit=EYE_EMIT,name='eyes'))
 BM,bp=basemorph('heb_000_pma__morphs.morphtarget',W)
 bw=np.asarray(xbm.load(cr2w.load_loose('/mnt/user-data/uploads/characters/common/character_customisation_items/eyebrows/textures/heb__base_d08.xbm')).convert('RGBA')).astype(float)
 g=bw[...,:3].mean(-1,keepdims=True)/255                      # hair strand shading, black_carbon tint
@@ -116,7 +116,7 @@ def float_on(p,hpos,hidx,gap=0.0008):
     h=((p-sp)*sn).sum(1); lift=np.clip(gap-h,0,None); return p+sn*lift[:,None],lift
 for i,s in enumerate(BM['geo']['subs']):
     q,l=float_on(bp[i],hp[0],HM['geo']['subs'][0]['idx']); print('brow chunk',i,'verts lifted',int((l>0).sum()),'/',len(l),'max %.1f mm'%(l.max()*1000))
-    parts.append(dict(pos=q,idx=s['idx'],uv=s['uv0'],tex=bt,alpha=2))
+    parts.append(dict(pos=q,idx=s['idx'],uv=s['uv0'],tex=bt,alpha=2,name='brows'))
 for _p in parts:
     if _p.get('tex') is LASH:
         _p['pos'],_l=float_on(_p['pos'],hp[0],HM['geo']['subs'][0]['idx'],gap=0.0003); print('lash verts lifted',int((_l>0).sum()),'/',len(_l),'max %.1f mm'%(_l.max()*1000))
@@ -133,7 +133,7 @@ _cav=np.asarray(Image.fromarray(np.clip(_cav*40+128,0,255).astype(np.uint8)).fil
 _emb=0.5*(_nx*-0.6+_ny*0.8)                                                # emboss: GlobalNormal lit from above
 shade=np.clip(1+_emb-0.9*np.clip(-_cav,0,1)+0.35*np.clip(_cav,0,1),0.35,1.6)[...,None]
 CWT=Image.fromarray(np.clip(CWA*(1+0.35*_met*(1-_rg))*shade,0,255).astype(np.uint8)).convert('RGBA')   # preview: polished metal reads a touch brighter
-for s in cy['subs']: parts.append(dict(pos=s['pos'],idx=s['idx'],uv=s['uv0'],tex=CWT,alpha=0))
+for s in cy['subs']: parts.append(dict(pos=s['pos'],idx=s['idx'],uv=s['uv0'],tex=CWT,alpha=0,name='cyberware'))
 print('cyber bbox',cy['subs'][0]['pos'].min(0).round(3),cy['subs'][0]['pos'].max(0).round(3))
 parts.sort(key=lambda p:p.get('alpha',0)==2)
 lo=np.array([-0.13,-0.2,1.45]); hi=np.array([0.13,0.15,1.86])
