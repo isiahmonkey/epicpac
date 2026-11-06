@@ -50,9 +50,42 @@ def basemorph(fn,w):
 import names
 _ea=modres.AR['HighTech_Eyes_pack']; _ef={f['hash']:f for f in _ea.files}
 EYE=xbm.load(_ea.extract(_ef[names.fnv('base\\eyes\\textures\\eye_14_diffuse.xbm')])).convert('RGBA'); EYE.save('/home/claude/work/staging/eye14.png')
+def bake_eye(im,iris_size=0.7373740077018738,r_src=0.165,r_out=0.30):
+    # emulate eye_gradient.mt for a flat bake: iris shrunk by IrisSize (radial remap, sclera kept),
+    # limbal ring, cornea 'Blick' reflection and a wet sheen
+    a=np.asarray(im).astype(np.float32); Hh,Ww=a.shape[:2]
+    yy,xx=np.mgrid[0:Hh,0:Ww].astype(np.float32); u=(xx+0.5)/Ww-0.5; v=(yy+0.5)/Hh-0.5; r=np.sqrt(u*u+v*v)+1e-9
+    r_new=r_src*iris_size
+    rs=np.where(r<r_new, r/iris_size, np.where(r<r_out, r_src+(r-r_new)*(r_out-r_src)/(r_out-r_new), r))
+    sx=np.clip((0.5+u*rs/r)*Ww-0.5,0,Ww-1); sy=np.clip((0.5+v*rs/r)*Hh-0.5,0,Hh-1)
+    x0=np.floor(sx).astype(int); y0=np.floor(sy).astype(int); x1=np.minimum(x0+1,Ww-1); y1=np.minimum(y0+1,Hh-1); fx=(sx-x0)[...,None]; fy=(sy-y0)[...,None]
+    o=a[y0,x0]*(1-fx)*(1-fy)+a[y0,x1]*fx*(1-fy)+a[y1,x0]*(1-fx)*fy+a[y1,x1]*fx*fy
+    limb=np.exp(-((r-r_new)/(0.012))**2)*0.45; o[...,:3]*=(1-limb[...,None])        # dark limbal ring
+    sc=(r>r_new*1.08)&(r<r_out); o[...,:3]=np.where(sc[...,None],o[...,:3]*0.65+np.array([228,222,216])*0.35,o[...,:3])  # cleaner sclera
+    g1=np.exp(-(((u+0.035)**2+(v+0.045)**2)/(2*0.011**2)))                      # cornea highlight (key light)
+    g2=np.exp(-(((u-0.05)**2+(v-0.02)**2)/(2*0.006**2)))*0.5                     # small secondary blick
+    sh=np.exp(-(r/(r_new*1.15))**8)*0.10                                         # wet cornea sheen
+    hl=np.clip(g1*0.85+g2+sh,0,1)[...,None]; o[...,:3]=o[...,:3]*(1-hl)+255*hl
+    return Image.fromarray(np.clip(o,0,255).astype(np.uint8),'RGBA')
+EYE=bake_eye(EYE); EYE.save('/home/claude/work/staging/eye14_baked.png')
 EM,ep=basemorph('he_000_pma__morphs.morphtarget',W)
+def fit_sphere(q):
+    A=np.c_[2*q,np.ones(len(q))]; b=(q**2).sum(1); x=np.linalg.lstsq(A,b,rcond=None)[0]; c=x[:3]; return c,np.sqrt(x[3]+c@c)
+def clear_eyes(H,eye,gap=0.0004):
+    # Hades lids were sculpted without the eyeballs: push any lid vertex that cuts into an eyeball back onto its surface
+    H=H.copy(); n=0
+    for sg in (1,-1):
+        c,R=fit_sphere(eye[(eye[:,0]*sg)>0]); v=H-c; d=np.linalg.norm(v,axis=1)
+        m=(d<R+gap)&(v[:,1]>-0.25*R)                      # front half only (the socket behind stays)
+        H[m]=c+v[m]/d[m,None]*(R+gap); n+=int(m.sum())
+    return H,n
+if os.environ.get('MORPH','1')=='2':
+    hp[0],_n=clear_eyes(hp[0],ep[2]); print('lid verts pushed off eyeballs',_n)
+_sm=np.asarray(Image.open('/home/claude/work/tex/base/eye_shadow_mask.png')).astype(float)
+SHADOW=Image.fromarray(np.dstack([np.full(_sm.shape[:2],8),np.full(_sm.shape[:2],6),np.full(_sm.shape[:2],6),np.clip(_sm[...,0]/255*0.92,0,1)*255]).astype(np.uint8),'RGBA')
 for i,s in enumerate(EM['geo']['subs']):
-    if i==1: continue
+    if i==1:   # eye shadow / wetness shell: occlusion in the corners and under the lid (eyeshadow_base.mi, R channel)
+        parts.append(dict(pos=ep[i],idx=s['idx'],uv=s['uv0'],tex=SHADOW,alpha=2)); continue
     if i==0:
         _l=Image.open('/home/claude/work/tex/base/eyelashes_ma_01_lod1.png'); _L=np.asarray(_l.convert('L')).astype(float); _al=np.asarray(_l)[...,3].astype(float) if _l.mode=='RGBA' else np.clip(_L/max(_L.max(),1)*1.15,0,1)*255
         LASH=Image.fromarray(np.dstack([np.full(_L.shape,14),np.full(_L.shape,12),np.full(_L.shape,12),_al]).astype(np.uint8),'RGBA')
@@ -78,6 +111,9 @@ def float_on(p,hpos,hidx,gap=0.0008):
 for i,s in enumerate(BM['geo']['subs']):
     q,l=float_on(bp[i],hp[0],HM['geo']['subs'][0]['idx']); print('brow chunk',i,'verts lifted',int((l>0).sum()),'/',len(l),'max %.1f mm'%(l.max()*1000))
     parts.append(dict(pos=q,idx=s['idx'],uv=s['uv0'],tex=bt,alpha=2))
+for _p in parts:
+    if _p.get('tex') is LASH:
+        _p['pos'],_l=float_on(_p['pos'],hp[0],HM['geo']['subs'][0]['idx'],gap=0.0003); print('lash verts lifted',int((_l>0).sum()),'/',len(_l),'max %.1f mm'%(_l.max()*1000))
 cy=mesh.decode(A.extract(F[0x4b02f72835f99a29]))
 for s in cy['subs']: parts.append(dict(pos=s['pos'],idx=s['idx'],uv=s['uv0'],color=(70,70,78)))
 print('cyber bbox',cy['subs'][0]['pos'].min(0).round(3),cy['subs'][0]['pos'].max(0).round(3))
