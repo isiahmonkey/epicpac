@@ -1,7 +1,7 @@
 import sys,os,numpy as np; sys.path.insert(0,'/home/claude/tools/scripts'); sys.path.insert(0,'/home/claude/work/pbr')
 os.environ.setdefault('MORPH','2'); os.environ.setdefault('TONE','deep')
 exec(open('/home/claude/work/staging/head1.py').read().split('parts.sort(')[0].replace('print(','(lambda *a,**k:None)('))
-import glb,cr2w,xbm
+import glb,cr2w,xbm,garments
 from PIL import Image
 G=glb.GLB()
 U2='/mnt/user-data/uploads/characters/'
@@ -76,6 +76,14 @@ if 'OUTFIT' in globals() and OUTFIT:
                 import garments as _gaX
                 _vn=xbm.load(_gaX.segs_of('base\\characters\\garment\\gang_valentino\\item\\i1_090_full__jewlery\\textures\\i1_090_wa_full__jewlery_n01.xbm'))
                 M['vcross']=G.material('vcross',base=Image.fromarray((VX['albedo']*255).astype(np.uint8)),normal=glb.cp_normal(_vn),nscale=1.4,mr=glb.mr_map(Image.fromarray((VX['rough']*255).astype(np.uint8)),Image.fromarray((VX['metal']*255).astype(np.uint8))))   # link detail lives in the normal map
+        elif it in ('tron','bolero'):
+          for _key in ([it,'bolerocuff'] if it=='bolero' else [it]):
+            _b=globals()['BK_'+_key]; _nx=_b['nxy']
+            _gn=np.zeros_like(_nx) if _b['n01'] is None else np.asarray(_b['n01'].convert('RGB').resize(_nx.shape[1::-1],Image.BICUBIC)).astype(np.float32)[...,:2]/127.5-1
+            _xy=np.clip(_gn+_nx,-0.95,0.95); _ni=Image.fromarray(((np.dstack([_xy,np.zeros(_xy.shape[:2])])+1)*127.5).clip(0,255).astype(np.uint8))
+            M[_key+'_ml']=G.material(_key+'_ml',base=Image.fromarray((_b['albedo']*255).astype(np.uint8)),normal=glb.cp_normal(_ni),mr=glb.mr_map(Image.fromarray((_b['rough']*255).astype(np.uint8)),Image.fromarray((_b['metal']*255).astype(np.uint8))),ext={'cull':1})
+            M[it+'_glow']=G.material(it+'_glow',color=(1.0,0.02,0.02,1),emis=Image.new('RGB',(4,4),(255,8,6)),emis_f=(3,3,3),rough=0.3)
+            M[it+'_dec']=G.material(it+'_dec',base=Image.new('RGBA',(4,4),(20,20,21,255)) if False else None,alpha='BLEND',rough=0.8,ext={'order':1}) if False else G.material(it+'_dec',base=xbm.load(garments.segs_of('base\\characters\\common\\textures\\decals\\garment_decals_d01.xbm')).convert('RGBA'),color=(0.08,0.08,0.085,1),alpha='BLEND',rough=0.8,ext={'order':1})
         elif it=='walletchain':
             _cl=np.asarray(DEN['d01'].convert('L').resize((2048,2048))).astype(np.float32); _cl=np.clip(150+(_cl-_cl.mean())*0.5,90,215).astype(np.uint8)
             M['chain_silver']=G.material('chain_silver',base=Image.fromarray(np.dstack([_cl,_cl,(_cl*1.02).clip(0,255).astype(np.uint8)])),normal=_dn_,rough=0.22,metal=1.0)

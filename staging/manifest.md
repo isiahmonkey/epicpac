@@ -60,3 +60,10 @@ Source preset: `takemura hades edition.preset` (40 options, resolved against `ma
 - **Pending (collect_wardrobe.wscript):**
   - Tron Shoes, red: `fronky\tronshoes`, built on the Judy shoe mask.
   - Black Leather Bolero (Jacket_10_GITS): t2_091 racing jacket mesh plus `black.mlsetup`.
+- **Feet:** Tron Shoes, red (`tronshoes1`, red appearance). The real Judy shoe mask came via collect_wardrobe. The red diode strips are emissive.
+- **Outer layer:** Black Leather Bolero (Jacket_10_GITS), using `black.mlsetup` over the t2_091 mask, plus vanilla rolled cuffs in `leather_black`.
+- **Looks staged:**
+  - A: bolero + Tron
+  - B: long fur coat + Tron
+  - C (current): tank + jeans + silver wallet chain + platform boots
+- **Wallet chain on the baggy jeans:** about 3% of its vertices sink in, up to 7.7 mm, all at the waistband (z 0.92 to 1.06).

@@ -332,7 +332,7 @@ if BODY:
             o=np.asarray(d).astype(np.float32); o[...,:3]=o[...,:3]*(1-a[...,None])+np.array([13,13,17])*a[...,None]; return Image.fromarray(o.astype(np.uint8),'RGBA')
         BODY_D=_ink(BODY_D,'/home/claude/work/tattoo/male_body_tattoo.png'); ARMS_D=_ink(ARMS_D,'/home/claude/work/tattoo/male_arms_tattoo.png')
     BODY_N=Image.open(_TB+'t0_000_ma__c_base_n03_censored.png').convert('RGB'); ARMS_N=Image.open(_TB+'a0_000_ma_base__hq_nd01.png').convert('RGB')
-    _hidefeet=any(x in os.environ.get('OUTFIT','').split(',') for x in ('platform','boots'))
+    _hidefeet=any(x in os.environ.get('OUTFIT','').split(',') for x in ('platform','boots','tron'))
     for s_ in mesh.decode(cr2w.load_loose(_B+'t0_000_pma_base__full.mesh'))['subs']:
         if _hidefeet and s_['chunk']==7: continue
         parts.append(dict(pos=s_['pos'],idx=s_['idx'],uv=s_['uv0'],tex=BODY_D,alpha=0,name='body'))
@@ -445,6 +445,41 @@ if OUTFIT and BODY:
             continue
         if it=='vcross':
             VCROSS_DEFER=True; continue
+        if it in ('tron','bolero'):
+            import ml as _ml5, garments as _ga6
+            if it=='tron':   # Tron Shoes (fronky), RED appearance: Judy shoe multilayer + red diode strips
+                _mp='fronky\\tronshoes\\meshes\\tronshoes1_mesh.mesh'; _app='red'
+                _setup='fronky\\tronshoes\\textures\\shoes_tex.mlsetup'; _mask='base\\characters\\garment\\citizen_casual\\feet\\s1_059_boot__judy\\textures\\s1_059_mc_shoe__judy_masksset.mlmask'
+                _nrm='base\\characters\\main_npc\\judy\\textures\\s1_001_wa_shoe__judy_n01.xbm'
+            else:            # Black Leather Bolero (Jacket_10_GITS): t2_091 racing jacket cut, black.mlsetup
+                _mp='eyeofcenter\\jacket_10_gits\\t2_091_pma_jacket__racing.mesh'; _app='default'
+                _setup='eyeofcenter\\jacket_10_gits\\black.mlsetup'; _mask='base\\characters\\garment\\gang_aldecaldos\\torso\\t2_091_jacket__racing\\textures\\ml_t2_091_ma_jacket__racing_purple_masksset.mlmask'
+                _nrm='base\\characters\\garment\\gang_aldecaldos\\torso\\t2_091_jacket__racing\\textures\\t2_091_ma_jacket__racing_n01.xbm'
+            _ml5.FALLBACK_MASK=[np.full((8,8),255,np.uint8)]
+            _bk=_ml5.bake(_setup,_mask,2048); _bk['interim']=_ga6.segs_of(_mask) is None; _ml5.FALLBACK_MASK=None
+            _nn=_ga6.segs_of(_nrm); _bk['n01']=xbm.load(_nn) if _nn else None
+            globals()['BK_'+it]=_bk
+            import mats as _mt6
+            _sg=_ga6.segs_of(_mp); _,_,_,_apps=_mt6.mesh_info(_sg); _cm=_apps.get(_app) or _apps['default']
+            _gd3=xbm.load(_ga6.segs_of('base\\characters\\common\\textures\\decals\\garment_decals_d01.xbm')).convert('RGBA'); _g3=np.asarray(_gd3).copy(); _g3[...,:3]=(20,20,21); _stt=Image.fromarray(_g3,'RGBA')
+            for s_ in mesh.decode(_sg)['subs']:
+                mn=_cm[s_['chunk']] if s_['chunk']<len(_cm) else _cm[0]
+                if mn.startswith('ml_'): nm_=it+'_ml'; tx=Image.fromarray((_bk['albedo']*255).astype(np.uint8)).convert('RGBA'); al=0
+                elif 'emissive' in mn: nm_=it+'_glow'; tx=Image.new('RGBA',(4,4),(255,30,20,255)); al=0
+                else: nm_=it+'_dec'; tx=_stt; al=2
+                parts.append(dict(pos=s_['pos'],idx=s_['idx'],uv=s_['uv0'],nrm=s_.get('nrm'),tex=tx,alpha=al,name=nm_))
+            if it=='bolero':   # vanilla t2_091 rolled cuffs, leather_black appearance (stitches -> dark decal)
+                _CU='base\\characters\\garment\\player_equipment\\arms\\a0_001_cuffs__rolled_up\\textures\\'
+                _bc=_ml5.bake(_CU+'leather_black.mlsetup',_CU+'ml_a0_pma_001_cuffs_rolled_up_masksset.mlmask',1024); _nc=_ga6.segs_of(_CU+'a0_pma_001_cuffs__rolled_up_n01.xbm'); _bc['n01']=xbm.load(_nc) if _nc else None
+                globals()['BK_bolerocuff']=_bc
+                _cs=_ga6.segs_of('base\\characters\\garment\\player_equipment\\torso\\t2_091_jacket__racing\\t2_091_pma_jacket__racing_cuffs.mesh')
+                if _cs:
+                    _,_,_,_ca=_mt6.mesh_info(_cs); _cc=_ca['leather_black']
+                    for s_ in mesh.decode(_cs)['subs']:
+                        mn=_cc[s_['chunk']] if s_['chunk']<len(_cc) else _cc[0]
+                        parts.append(dict(pos=s_['pos'],idx=s_['idx'],uv=s_['uv0'],nrm=s_.get('nrm'),tex=_stt if 'dec' in mn else Image.fromarray((_bc['albedo']*255).astype(np.uint8)).convert('RGBA'),alpha=2 if 'dec' in mn else 0,name='bolero_dec' if 'dec' in mn else 'bolerocuff_ml'))
+            print(it,'interim(no mask)' if _bk['interim'] else 'full', _ml5.MISSING)
+            continue
         if it=='walletchain':    # Edgerunner wallet chain re-finished in polished silver
             q='pkd_rvcoondumpster\\denimedgerunner\\i1_pma_denimedgerunner_chain_base_body.mesh'
             for s_ in mesh.decode(_dn.extract(_dnf[names.fnv(q.lower())]))['subs']:
