@@ -21,6 +21,8 @@ root=part('group','Token - %s'%oid,dict(OwnerName='self'),[
   part('entity2','hide player',dict(NoDraw=True,DrawShadow=True)),
   part('model2','token_base',dict(Model=model('token_base'),BoneMerge=True,ModelModifiers=hide)),
   part('model2','token_'+oid,dict(Model=model('token_'+oid),BoneMerge=True)),
+  part('model2','token_hat',dict(Model=model('token_hat'),BoneMerge=True),[
+    part('event','hide_hat (pac_event hide_hat 2)',dict(Event='command',Operator='equal',Arguments='hide_hat@@0@@0',Invert=False))]),
 ])
 out=B+'pac3_outfits/token_%s.txt'%oid
 open(out,'w',newline='\n').write('[1] = %s,\n'%lua(root,2))

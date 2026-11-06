@@ -15,8 +15,10 @@ OUTFITS={
 oid=sys.argv[1]
 allopts={g:o for m in K.LAYOUT.values() for g,o in m.items()}
 K.KIT=OUT; K.KEEP=True; K.BATNAME=None
-if oid=='base':
-    M='token_base'; K.LAYOUT={M:dict(K.LAYOUT['token_body'])}; K.BODY_MODEL=M
+if oid=='base':      # the fur hat is its own model so PAC can toggle it from the event wheel
+    M='token_base'; K.LAYOUT={M:{g:o for g,o in K.LAYOUT['token_body'].items() if g!='hat'}}; K.BODY_MODEL=M
+elif oid=='hat':
+    M='token_hat'; K.LAYOUT={M:{'hat':K.LAYOUT['token_body']['hat']}}; K.BODY_MODEL=None
 else:
     O=OUTFITS[oid]; M='token_'+oid
     K.LAYOUT={M:{g:{opt:allopts[g][opt]} for g,opt in O['pieces'].items()}}; K.BODY_MODEL=None
@@ -26,8 +28,8 @@ K.DEFAULT_ON=set(K.LAYOUT[M])
 plan=K.main()
 os.makedirs(OUT+'plans',exist_ok=True)
 entry=dict(model=M,materials=plan[M]['materials'],bodygroups=plan[M]['bodygroups'],tris=plan[M]['tris'])
-if oid=='base':
-    json.dump(entry,open(OUT+'plans/_base.json','w'),indent=1)
+if oid in ('base','hat'):
+    json.dump(entry,open(OUT+'plans/_%s.json'%oid,'w'),indent=1)
 else:
     entry.update(desc=O['desc'],hide_skin=O['hide_skin'])
     json.dump(entry,open(OUT+'plans/%s.json'%oid,'w'),indent=1)

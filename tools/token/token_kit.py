@@ -47,7 +47,9 @@ LAYOUT={
 }
 FLATTEN={'bolero_ml':0.15,'bolerocuff_ml':0.15}
 LEATHER=' "$halflambert" "1"\n "$phong" "1"\n "$phongexponent" "28"\n "$phongboost" "1.6"\n "$phongfresnelranges" "[0.3 0.6 1]"\n{A}'
-VMT_OVERRIDE={'bolero_ml':LEATHER,'bolerocuff_ml':LEATHER}
+SILVER=' "$envmap" "env_cubemap"\n "$envmaptint" "[.85 .85 .88]"\n "$envmapcontrast" "1"\n "$phong" "1"\n "$phongexponent" "70"\n "$phongboost" "6"\n "$phongalbedotint" "1"\n "$phongfresnelranges" "[1 1 1]"\n "$halflambert" "1"\n{A}'
+VMT_OVERRIDE={'bolero_ml':LEATHER,'bolerocuff_ml':LEATHER,'chain_silver':SILVER,'earring':SILVER,'nd_acc':SILVER,'vchain':SILVER,'vcross':SILVER}
+DARKEN={'chain_silver':0.38,'earring':0.38,'nd_acc':0.38,'vchain':0.38,'vcross':0.38}   # polished metal: dark diffuse, the shine comes from the cubemap
 BODY_MODEL='token_body'; KEEP=False; KITZIP='token_kit.zip'; PACZIP='token_pac3.zip'; BATNAME='compile_token.bat'
 DEFAULT_ON={'head','arms','neck_cyberware','head_hair','face_cyberware','face_piercings','face_decal','ear_left','ear_right'}   # groups without a 'blank' at index 0
 
@@ -112,7 +114,7 @@ VMTX={
  'decal':' "$alphatest" "1"\n "$alphatestreference" "0.45"\n "$allowalphatocoverage" "1"\n "$halflambert" "1"\n',
  'cloth':' "$halflambert" "1"\n "$phong" "1"\n "$phongexponent" "6"\n "$phongboost" "0.25"\n "$phongfresnelranges" "[0.4 0.7 1]"\n{A}',
 }
-TEXCAP={'skin':2048,'jeans':2048,'mis_tank':2048,'body':2048,'arms':2048,'hair':1024,'coatfur':1024,'jacketfur':1024,'cyberware':2048,'ga_cyber':2048}
+TEXCAP={'bolero_ml':2048,'bolerocuff_ml':2048,'den_pants':2048,'vinyl':2048,'den_hoodie':2048,'syn_pants':2048,'skin':2048,'jeans':2048,'mis_tank':2048,'body':2048,'arms':2048,'hair':1024,'coatfur':1024,'jacketfur':1024,'cyberware':2048,'ga_cyber':2048}
 def to_tga(im,nm):
     cap=TEXCAP.get(nm,1024); w,h=im.size; s=min(1.0,cap/max(w,h))
     if s<1: im=im.resize((max(4,int(w*s)),max(4,int(h*s))),Image.LANCZOS)
@@ -138,6 +140,8 @@ def main():
         if nm in FLATTEN:    # baked wear/scuff layers read as grey paint in Gmod's albedo-only shading: pull them back toward the base colour
             a=np.asarray(im).astype(np.float32); base=np.median(a[...,:3].reshape(-1,3),0)
             a[...,:3]=base+(a[...,:3]-base)*FLATTEN[nm]; im=Image.fromarray(np.clip(a,0,255).astype(np.uint8),im.mode)
+        if nm in DARKEN:
+            a=np.asarray(im).astype(np.float32); a[...,:3]*=DARKEN[nm]; im=Image.fromarray(np.clip(a,0,255).astype(np.uint8),im.mode)
         has_a=np.asarray(im)[...,3].min()<250
         if c not in ('cards','decal','glass') and not has_a: im=im.convert('RGB')
         im.save(KIT+'materialsrc/%s_%s.tga'%(NAME,nm)); open(KIT+'materialsrc/%s_%s.txt'%(NAME,nm),'w').write('nocompress 0\n')
@@ -163,6 +167,9 @@ def main():
                 if nm in HEADLIKE: vp,vn_,lk=head_skin(pos[used],nrm[used])
                 else: vp,vn_,lk=RT.retarget(pos[used],nrm[used],np.asarray(p['ji'])[used],np.asarray(p['jw'])[used],p['bones'],p['bonepos'])
                 if nm in RIGID: lk=[[(RT.vn.index(RIGID[nm]),1.0)]]*len(vp)      # jewelry moves as one piece
+                if nm in HEADLIKE and cls(nm)!='cards':   # some CP head-family meshes carry inward normals: make them face out of the skull
+                    hc=RT.NW[RT.vn.index('ValveBiped.Bip01_Head1')][:3,3]+np.array([1.5,0,3.5])
+                    if ((vp-hc)*vn_).sum(1).mean()<0: vn_=-vn_
                 Fi=remap[F]; a,b,c=vp[Fi[:,0]],vp[Fi[:,1]],vp[Fi[:,2]]; flip=((np.cross(b-a,c-a)*vn_[Fi].sum(1)).sum(1)>0).mean()<0.5
                 emit_mat(nm,p)
                 T+=smd.part_tris(vp,vn_,p['uv'][used],Fi.ravel(),lk,'%s_%s'%(NAME,nm),flip=flip)
