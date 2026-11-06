@@ -57,7 +57,7 @@ CARDS_DARK=' "$alphatest" "1"\n "$alphatestreference" "0.4"\n "$allowalphatocove
 EYES=' "$selfillum" "1"\n "$selfillumtint" "[2.2 2.2 2.2]"\n "$phong" "1"\n "$phongexponent" "60"\n "$phongboost" "1"\n'
 HAIR=' "$bumpmap" "{D}/{M}_n"\n "$alphatest" "1"\n "$alphatestreference" "0.4"\n "$allowalphatocoverage" "1"\n "$nocull" "1"\n'
 PLATE=' "$bumpmap" "{D}/{M}_n"\n "$normalmapalphaenvmapmask" "1"\n "$envmap" "environment maps/metal_generic_002"\n "$envmaptint" "[1.1 1.1 1.15]"\n "$envmapcontrast" "1"\n "$phong" "1"\n "$phongexponent" "60"\n "$phongboost" "5"\n "$phongfresnelranges" "[0.5 0.8 1]"\n "$alphatest" "1"\n "$alphatestreference" "0.5"\n'.replace('{D}',MATDIR).replace('{M}','token_{NM}')
-VMT_OVERRIDE={'eyeshadow':' "$translucent" "1"\n "$nocull" "1"\n','cyberware':BLACKMETAL,'ga_cyber':BLACKMETAL,'ga_fingers':BLACKMETAL,'ga_end':BLACKMETAL,'earcyber':BLACKMETAL,'piercing':BLACKMETAL,
+VMT_OVERRIDE={'ga_glass':' "$nocull" "1"\n "$envmap" "env_cubemap"\n "$envmaptint" "[.08 .08 .09]"\n "$phong" "1"\n "$phongexponent" "80"\n "$phongboost" "2"\n','eyeshadow':' "$translucent" "1"\n "$nocull" "1"\n','cyberware':BLACKMETAL,'ga_cyber':BLACKMETAL,'ga_fingers':BLACKMETAL,'ga_end':BLACKMETAL,'earcyber':BLACKMETAL,'piercing':BLACKMETAL,
  'facecw_face':BLACKMETAL_N,'facecw_nose':BLACKMETAL_N,'eyes':EYES,
  'hair':HAIR,'hatfur':HAIR,'brows':' "$bumpmap" "{D}/{M}_n"\n'+CARDS_DARK.replace('"0.12"','"0.05"'),'brows_s7':CARDS_DARK,'brows_s14':CARDS_DARK,'lashes':CARDS_DARK,
  'haircap':HAIR.replace('"0.4"','"0.12"'),'bolero_ml':LEATHER,'bolerocuff_ml':LEATHER,'chain_silver':SILVER,'earring':SILVER,'nd_acc':SILVER,'vchain':SILVER,'vcross':SILVER}
@@ -357,7 +357,7 @@ def main():
         texdone.add(nm); c=cls(nm); tex=p.get('tex')
         im=tex if tex is not None else Image.new('RGBA',(8,8),(128,128,128,255))
         if nm in BASE_FROM_STAGING and STAGED_MATS.get(nm,{}).get('base') is not None: im=STAGED_MATS[nm]['base']   # the staging material's own colour (the part's raw tex is the arm skin for Gorilla plates)
-        if nm=='ga_glass': im=Image.new('RGBA',(256,256),(18,18,22,80))   # tinted cyber-glass (the part carried the arm skin texture)
+        if nm=='ga_glass': im=Image.new('RGBA',(256,256),(10,10,12,255))   # tinted cyber-glass (the part carried the arm skin texture)
         if nm=='arms': im=untattoo_hands(im)
         im=to_tga(im.convert('RGBA'),nm)
         _p2=lambda v:1<<max(2,round(np.log2(v)))
