@@ -141,19 +141,34 @@ NORMALS={  # extra normal maps where they carry the look
  'arms':'/home/claude/work/tex/base/a0_000_ma_base__hq_nd01.png',
  'facecw_face':'/home/claude/work/tex/base/hx_cyberware_13_m02.png','facecw_nose':'/home/claude/work/tex/base/hx_cyberware_13_d02.png'}
 CAP=None
-OCCLUDE={'mis_tank':['bolero_ml','bolerocuff_ml'],'mis_print':['bolero_ml'],'mis_stitch':['bolero_ml','bolerocuff_ml']}   # inner layer -> outer layers that cover it
+HAND_UV_MASK=None
+def _grade(im,rgb=(66,42,30)):
+    a=np.asarray(im).astype(np.float32)/255; lin=a[...,:3]**2.2; tgt=(np.array(rgb,np.float32)/255)**2.2
+    Y=lin@np.array([0.2126,0.7152,0.0722],np.float32); Ym=np.median(Y); r=np.exp(np.log(np.clip(Y/max(Ym,1e-6),1e-3,None))*0.75)
+    warm=lin/np.maximum(Y[...,None],1e-6); warm=warm/np.median(warm.reshape(-1,3),0); hue=np.clip(1+(warm-1)*0.35,0.6,1.6)
+    out=np.clip(tgt*r[...,None]*hue,0,1)**(1/2.2); return np.dstack([out*255,a[...,3:]*255])
+def untattoo_hands(im):
+    """tattoo stops at the wrist: under the Gorilla hand the skin is clean (the female VTK sleeve ran onto the hand)"""
+    if HAND_UV_MASK is None: return im
+    from PIL import ImageFilter
+    clean=Image.fromarray(_grade(Image.open('/home/claude/work/tex/base/a0_000_ma__c_base_hq_d01.png').convert('RGBA')).astype(np.uint8),'RGBA').resize(im.size,Image.LANCZOS)
+    m=HAND_UV_MASK.resize(im.size,Image.LANCZOS).filter(ImageFilter.GaussianBlur(im.size[0]/256))
+    m=np.asarray(m).astype(np.float32)[...,None]/255; a=np.asarray(im.convert('RGBA')).astype(np.float32); c=np.asarray(clean).astype(np.float32)
+    a[...,:3]=a[...,:3]*(1-m)+c[...,:3]*m; return Image.fromarray(a.astype(np.uint8),'RGBA')
+OCC_PARAM={'arms':(0.14,0.0,True)}   # name -> (reach in, edge margin in, two-sided)
+OCCLUDE={'arms':['ga_fingers'],'mis_tank':['bolero_ml','bolerocuff_ml'],'mis_print':['bolero_ml'],'mis_stitch':['bolero_ml','bolerocuff_ml']}   # inner layer -> outer layers that cover it
 OUTER={}   # outer part name -> (points, normals) in bind space, filled per model
-def covered(vp,vn,outer_names,reach=1.4):
+def covered(vp,vn,outer_names,reach=1.4,margin=2.4,both=False):
     """vertex is hidden if an outer garment surface lies within `reach` inches on its outward side"""
     from scipy.spatial import cKDTree
     pts=[OUTER[o][0] for o in outer_names if o in OUTER]
     if not pts: return np.zeros(len(vp),bool)
     P=np.concatenate(pts); tree=cKDTree(P); hid=np.zeros(len(vp),bool)
     for k,nb in enumerate(tree.query_ball_point(vp,reach)):
-        if nb: hid[k]=((P[nb]-vp[k])@vn[k]>-0.15).any()
+        if nb: hid[k]=True if both else ((P[nb]-vp[k])@vn[k]>-0.15).any()
     vis=~hid
-    if vis.any() and hid.any():   # keep a margin under the jacket's edges so no gap opens at the opening
-        d,_=cKDTree(vp[vis]).query(vp[hid]); h=np.where(hid)[0]; hid[h[d<2.4]]=False
+    if margin>0 and vis.any() and hid.any():   # keep a margin under the jacket's edges so no gap opens at the opening
+        d,_=cKDTree(vp[vis]).query(vp[hid]); h=np.where(hid)[0]; hid[h[d<margin]]=False
     return hid
 METAL_MASKED={'vinyl','den_pants'}   # garments with metal hardware (boot chains, buckles, zips): metal areas reflect, stay bright
 def metal_of(nm,size):
@@ -269,7 +284,18 @@ def main():
     for p in P: byname.setdefault(p['name'],[]).append(p)
     texdone=set(); report={}; plan={}
     NDONE=set(); texdone_n=lambda nm: nm in NDONE
-    global CAP
+    global CAP, HAND_UV_MASK
+    if 'arms' in byname:
+        from PIL import ImageDraw
+        M=Image.new('L',(2048,2048),0); dr=ImageDraw.Draw(M)
+        wx=abs(RT.NW[RT.vn.index('ValveBiped.Bip01_L_Hand')][0,3])-0.6   # just before the wrist joint
+        for p in byname['arms']:
+            nr=p.get('nrm'); nr=p.get('src_nrm') if nr is None else nr
+            q=RT.retarget(p['pos'].astype(np.float64),np.asarray(nr)[:,:3].astype(np.float64),np.asarray(p['ji']),np.asarray(p['jw']),p['bones'],p['bonepos'])[0]
+            F=p['idx'].reshape(-1,3); uv=np.asarray(p['uv'])
+            for t in F[(np.abs(q[F][:,:,0])>wx).all(1)]:
+                dr.polygon([(uv[k,0]*2048,uv[k,1]*2048) for k in t],fill=255)
+        HAND_UV_MASK=M; print('   hand UV mask px',int((np.asarray(M)>0).sum()))
     if 'earring' in byname: LOCAL_PIVOT.setdefault('token_earring',None)
     if 'earring' in byname and 'token_earring' not in VN:
         p=byname['earring'][0]; q=head_skin(p['pos'].astype(np.float64),np.tile([0,0,1.0],(len(p['pos']),1)))[0]
@@ -284,6 +310,7 @@ def main():
         im=tex if tex is not None else Image.new('RGBA',(8,8),(128,128,128,255))
         if nm in BASE_FROM_STAGING and STAGED_MATS.get(nm,{}).get('base') is not None: im=STAGED_MATS[nm]['base']   # the staging material's own colour (the part's raw tex is the arm skin for Gorilla plates)
         if nm=='ga_glass': im=Image.new('RGBA',(256,256),(18,18,22,80))   # tinted cyber-glass (the part carried the arm skin texture)
+        if nm=='arms': im=untattoo_hands(im)
         im=to_tga(im.convert('RGBA'),nm)
         _p2=lambda v:1<<max(2,round(np.log2(v)))
         if im.size!=(_p2(im.size[0]),_p2(im.size[1])): im=im.resize((_p2(im.size[0]),_p2(im.size[1])),Image.LANCZOS)
@@ -385,7 +412,7 @@ def main():
                 if nm=='eyes': vp=vp+np.array([0,0.03,0])   # seat the eyeballs ~0.75 mm deeper (+y = backward in the bind skeleton) so the lids close over them
                 Fi=remap[F].copy()
                 if nm in OCCLUDE and any(o in OUTER for o in OCCLUDE[nm]):   # drop inner-layer faces fully under the jacket: they poke through when the citizen animations bend the torso
-                    hid=covered(vp,vn_,OCCLUDE[nm]); keep=~hid[Fi].all(1); print('   %s: %d/%d faces hidden under %s'%(nm,(~keep).sum(),len(Fi),OCCLUDE[nm])); Fi=Fi[keep]
+                    r_,m_,b_=OCC_PARAM.get(nm,(1.4,2.4,False)); hid=covered(vp,vn_,OCCLUDE[nm],r_,m_,b_); keep=~hid[Fi].all(1); print('   %s: %d/%d faces hidden under %s'%(nm,(~keep).sum(),len(Fi),OCCLUDE[nm])); Fi=Fi[keep]
                 a,b,c=vp[Fi[:,0]],vp[Fi[:,1]],vp[Fi[:,2]]
                 bad=(np.cross(b-a,c-a)*vn_[Fi].sum(1)).sum(1)<0; Fi[bad]=Fi[bad][:,[0,2,1]]; flip=False   # each triangle faces the way its normals point (Source culls back faces)
                 emit_mat(nm,p)
