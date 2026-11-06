@@ -1,5 +1,5 @@
 import sys,os,numpy as np; sys.path.insert(0,'/home/claude/tools/scripts'); sys.path.insert(0,'/home/claude/work/pbr')
-os.environ.setdefault('MORPH','2'); os.environ.setdefault('TONE','05_bl_espresso')
+os.environ.setdefault('MORPH','2'); os.environ.setdefault('TONE','deep')
 exec(open('/home/claude/work/staging/head1.py').read().split('parts.sort(')[0].replace('print(','(lambda *a,**k:None)('))
 import glb,cr2w,xbm
 from PIL import Image

@@ -12,9 +12,9 @@ W={'h141':1,'h102':1,'h143':1,'h034':1}
 U='/mnt/user-data/uploads/characters/head/player_base_heads/player_man_average/'
 def xpng(p): return xbm.load(cr2w.load_loose(p)).convert("RGBA")
 skin=xpng(U+'h0_000_pma_c__basehead/textures/h0_000_pma_c__basehead_d01.xbm')
-GRADE={'05_bl_espresso':(92,60,44),'06_bl_dark':(58,38,28)}
+GRADE={'05_bl_espresso':(92,60,44),'06_bl_dark':(58,38,28),'deep':(66,42,30)}
 TONES={'01_ca_pale':((171,155,150),0.0),'05_bl_espresso':((117,98,96),0.8),'06_bl_dark':((63,51,39),0.845)}
-TONE=os.environ.get('TONE','05_bl_espresso')
+TONE=os.environ.get('TONE','deep')
 def tint_skin(im,tone):
     # skin.mt: albedo multiplied by TintColor, weighted by TintScale x TintColorMask (done in linear space)
     c,k=TONES[tone]; a=np.asarray(im).astype(np.float32)/255; lin=a[...,:3]**2.2
