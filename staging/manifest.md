@@ -18,6 +18,7 @@ Source preset: `takemura hades edition.preset` (40 options, resolved against `ma
 | Ear cyberware | RIGHT ear only (left gets the cross earring); ANRUI ear shell, Black, metal full / rough half / OG normals; skin tucked under, lifted over neck piece | ANRUI_MEarCyberware_Base + Customization |
 | Hair | Half Bun Dreads (Male V), black_carbon (overrides preset hair) | Half_Bun_DreadsMale_V |
 | Body | player_man_average base body (censored skin) + HQ arms + natural nails, graded to the head deep tone | base |
+| Arms | Gorilla Arms x2 (TPP holstered), BLACK: fingers + knuckle plating gloss black, decals darkened, red details kept; organic nails removed | base cyberware |
 | Hat | axellysse fur hat (hat_fur_m_base_body.mesh), black_carbon fur cards (hh_short01 + black_carbon.hp); inner cap material pending collect_staging2 | axellysse_fur_collection |
 | Coat (maybe) | axellysse fur jacket, black_carbon | axellysse_fur_collection |
 | Teeth / nails / lashes | defaults | base |

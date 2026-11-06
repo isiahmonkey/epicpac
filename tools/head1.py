@@ -27,8 +27,14 @@ def tint_skin(im,tone):
 def grade(im,rgb):
     # match the mean skin colour to the target tone in linear space, keeping all pore/shading detail
     a=np.asarray(im).astype(np.float32)/255; lin=a[...,:3]**2.2
-    cur=lin.reshape(-1,3).mean(0); tgt=(np.array(rgb,np.float32)/255)**2.2
-    out=np.clip(lin*(tgt/cur),0,1)**(1/2.2)
+    tgt=(np.array(rgb,np.float32)/255)**2.2
+    # luminance-only transfer: the light-skin texture's grey stubble/shadow patches would otherwise turn into black
+    # 'makeup' smears on deep skin. Keep its detail (pores, creases) as luminance, take the hue from the target tone.
+    Y=lin@np.array([0.2126,0.7152,0.0722],np.float32); Ym=np.median(Y)
+    r=(Y/max(Ym,1e-6)); r=np.exp(np.log(np.clip(r,1e-3,None))*0.75)        # soften contrast so stubble zones don't go black
+    warm=lin/np.maximum(Y[...,None],1e-6); warm=warm/np.median(warm.reshape(-1,3),0)   # keep a little of the original redness (lips, ears)
+    hue=np.clip(1+(warm-1)*0.35,0.6,1.6)
+    out=np.clip(tgt*r[...,None]*hue,0,1)**(1/2.2)
     return Image.fromarray(np.dstack([out*255,a[...,3:]*255]).astype(np.uint8),'RGBA')
 skin=grade(skin,GRADE[TONE]) if TONE in GRADE else skin
 parts=[]
@@ -104,9 +110,12 @@ bw=np.asarray(xbm.load(cr2w.load_loose('/mnt/user-data/uploads/characters/common
 g=bw[...,:3].mean(-1,keepdims=True)/255                      # hair strand shading, black_carbon tint
 # brow = soft density underlay (SecondaryDiffuseAlpha, ds08) + individual strands (d08 alpha), black_carbon
 _ds=np.asarray(xbm.load(cr2w.load_loose('/mnt/user-data/uploads/characters/common/character_customisation_items/eyebrows/textures/heb_wa__base_ds08.xbm')).convert('RGBA').resize(bw.shape[1::-1],Image.BICUBIC)).astype(float)[...,3]/255
-_sa=bw[...,3]/255; _a=np.clip(1-(1-_ds*0.75)*(1-_sa),0,1)
-_col=np.array([22,19,18.0])*(1-_sa[...,None])+g*np.array([34,31,30])*_sa[...,None]
+_sa=np.clip(bw[...,3]/255*1.6,0,1); _ds=np.clip(_ds*1.25,0,1); _a=np.clip(1-(1-_ds*0.92)*(1-_sa),0,1)   # fuller, denser brows on deep skin
+_col=np.array([9,8,8.0])*(1-_sa[...,None])+g*np.array([22,20,19])*_sa[...,None]
 bt=Image.fromarray(np.dstack([_col,_a*255]).astype(np.uint8),'RGBA')
+_st=np.clip(bw[...,3]/255*1.8,0,1)
+BROW_STRANDS={k:Image.fromarray(np.dstack([g*np.array([30,27,25])+6,np.clip(_st**1.3*k,0,1)*255]).astype(np.uint8),'RGBA') for k in (0.85,0.6)}
+BROW_N=xbm.load(cr2w.load_loose('/mnt/user-data/uploads/characters/common/character_customisation_items/eyebrows/textures/heb__base_n08.xbm')).convert('RGB')
 def vnormals(p,idx):
     t=idx.reshape(-1,3); n=np.cross(p[t[:,1]]-p[t[:,0]],p[t[:,2]]-p[t[:,0]]); vn=np.zeros_like(p)
     for k in range(3): np.add.at(vn,t[:,k],n)
@@ -119,6 +128,10 @@ def float_on(p,hpos,hidx,gap=0.0008):
 for i,s in enumerate(BM['geo']['subs']):
     q,l=float_on(bp[i],hp[0],HM['geo']['subs'][0]['idx']); print('brow chunk',i,'verts lifted',int((l>0).sum()),'/',len(l),'max %.1f mm'%(l.max()*1000))
     parts.append(dict(pos=q,idx=s['idx'],uv=s['uv0'],tex=bt,alpha=2,name='brows'))
+    # volume: two raised strand shells (0.7 / 1.4 mm) carrying only the individual hairs, so the brow has depth, not a flat print
+    _bn=vnormals(q,s['idx'])
+    for _h,_k in ((0.0007,0.85),(0.0014,0.6)):
+        parts.append(dict(pos=q+_bn*_h,idx=s['idx'],uv=s['uv0'],tex=BROW_STRANDS[_k],alpha=2,name='brows_s%d'%int(_h*1e4)))
 for _p in parts:
     if _p.get('tex') is LASH:
         _p['pos'],_l=float_on(_p['pos'],hp[0],HM['geo']['subs'][0]['idx'],gap=0.0003); print('lash verts lifted',int((_l>0).sum()),'/',len(_l),'max %.1f mm'%(_l.max()*1000))
@@ -318,6 +331,7 @@ if BODY:
     if GORILLA=='black':
         for _k in list(GA_DEC): _a=np.asarray(GA_DEC[_k]).copy(); _a[...,:3]=(_a[...,:3]*0.12).astype(np.uint8); GA_DEC[_k]=Image.fromarray(_a,'RGBA')
     for side in 'lr':
+        if not GORILLA and False: pass
         if not GORILLA:
             for k_,s_ in enumerate(mesh.decode(cr2w.load_loose(_B+'arms_hq/a0_000_pma_base_hq__%s.mesh'%side))['subs'][:3]):
                 parts.append(dict(pos=s_['pos'],idx=s_['idx'],uv=s_['uv0'],tex=ARMS_D,alpha=0,name='arms'))
@@ -330,6 +344,7 @@ if BODY:
             if nm: parts.append(dict(pos=s_['pos'],idx=s_['idx'],uv=s_['uv0'],tex=GA_DEC.get(mn,ARMS_D),alpha=2 if mn in GA_DEC else 0,name=nm))
         for s_ in mesh.decode(cr2w.load_loose(_GA+'a0_005_ma__strongarms_holstered_cyberware_%s.mesh'%side))['subs']:
             parts.append(dict(pos=s_['pos'],idx=s_['idx'],uv=s_['uv0'],tex=ARMS_D,alpha=0,name='ga_cyber'))
+        if GORILLA: continue                     # Gorilla fingers are cyber: no organic nails (they floated off the fingertips)
         for s_ in mesh.decode(cr2w.load_loose(_B+'arms_hq/nails/a0_000_pma_base__nails_%s.mesh'%side))['subs']:
             parts.append(dict(pos=s_['pos'],idx=s_['idx'],uv=s_['uv0'],tex=Image.new('RGBA',(4,4),(74,52,44,255)),alpha=0,name='nails'))
 # Takemura neck cyberware: ml_h1_001_ma_cyberware__takemura.mlsetup baked (titanium / cast iron / enamel / red tech plastic)
