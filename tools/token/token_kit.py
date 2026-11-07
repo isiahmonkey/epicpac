@@ -66,7 +66,7 @@ BODY_MODEL='token_body'; KEEP=False; KITZIP='token_kit.zip'; PACZIP='token_pac3.
 DEFAULT_ON={'head','arms','neck_cyberware','head_hair','face_cyberware','face_piercings','face_decal','ear_left','ear_right'}   # groups without a 'blank' at index 0
 
 # ---------------- budget: Gmod-friendly triangle counts ----------------
-DECIMATE={'jeans':0.28,'cyberware':0.40,'jacketcap':0.35,'coatcap':0.35,'bolero_ml':0.6,'den_boots':0.45,'syn_pants':0.7,'den_hoodie':0.8,'den_pants':0.8,'mis_tank':0.8,'maine':0.35,'earcyber':0.7,}
+DECIMATE={'jeans':0.28,'cyberware':0.40,'jacketcap':0.35,'bolero_ml':0.6,'den_boots':0.45,'syn_pants':0.7,'den_hoodie':0.8,'den_pants':0.8,'mis_tank':0.8,'maine':0.35,'earcyber':0.7,}
 CARDS={'hatfur':1.0,'jacketfur':0.45,'coatfur':0.38,'jacketfrizz':0.3,'coatfrizz':0.3,'hair':1.0}
 NOLOCK={'cyberware','maine','ga_cyber'}   # hard-surface / decal: open edges are panel borders, not UV seams that matter   # keep this fraction of whole hair/fur cards
 def boundary_lock(F,n):
