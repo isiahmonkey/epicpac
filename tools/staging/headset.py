@@ -39,7 +39,23 @@ def _clean(B,n01,base,metal,rough,edge=0.10,R=2048):
     col=np.ones((R,R,3),np.float32)*np.array(base,np.float32)
     col=col+edge*tilt[...,None]                                   # edges catch light: silhouette of every screw/vent/panel line
     return dict(albedo=np.clip(col,0,1),nxy=xy.astype(np.float32),rough=np.full((R,R),rough,np.float32)-0.2*tilt,metal=np.full((R,R),metal,np.float32))
-def parts(warp):
+def clear_brows(out,brows,margin=0.0055,sigma=0.014,iters=4):
+    """push the visor (specs frame + lens) forward (+y in CP space) just where eyebrow hair pokes through it; smooth falloff so it bends, not kinks"""
+    from scipy.spatial import cKDTree
+    vis=[p for p in out if p['name'] in ('hs_specs','hs_glass')]
+    B=np.concatenate([np.asarray(b['pos'],np.float64) for b in brows])
+    for it in range(iters):
+        L=np.concatenate([np.asarray(p['pos'],np.float64) for p in vis]); T=cKDTree(L[:,[0,2]])
+        nb=T.query_ball_point(B[:,[0,2]],0.002); front=np.array([L[n,1].max() if n else -9 for n in nb])
+        need=np.where(front>-9,B[:,1]+margin-front,0); need=np.clip(need,0,None); k=need>0
+        print('   brow clearance pass',it,'poking',int(k.sum()),'max %.1f mm'%(need.max()*1000))
+        if not k.any(): break
+        Bk=B[k]; nk=need[k]
+        for p in vis:
+            P=np.asarray(p['pos'],np.float64); d2=((P[:,None,[0,2]]-Bk[None,:,[0,2]])**2).sum(2)
+            push=(nk[None,:]*np.exp(-d2/(2*sigma**2))).max(1); P[:,1]+=push; p['pos']=P.astype(np.float32)
+    return out
+def parts(warp,brows=None):
     import garments,xbm
     out=[]; BD=_bake('bd',BD_SETUP); SP=_bake('specs',SP_SETUP)
     n01=xbm.load(garments.segs_of(D+r'citizen_casual\head\h1_033_specs__braindance\textures\h1_033_wa_specs__braindance_n01.xbm'))
@@ -57,4 +73,4 @@ def parts(warp):
             if k>=len(names) or len(s['pos'])<10: continue      # skip the empty decal chunks
             out.append(dict(pos=fit(np.asarray(s['pos'],np.float64)).astype(np.float32),idx=np.asarray(s['idx']),uv=np.asarray(s['uv0']),nrm=(lambda P,N:(lambda d:d/np.maximum(np.linalg.norm(d,axis=1,keepdims=True),1e-9))(fit(P+N*0.01)-fit(P)))(np.asarray(s['pos'],np.float64),np.asarray(s['nrm'])[:,:3].astype(np.float64)),
                             tex=texs[k],alpha=0,name=names[k],ji=np.asarray(s['ji']),jw=np.asarray(s['jw']),bones=g['bones'],bonepos=g['bonepos'],chunk=s.get('chunk')))
-    return out
+    return clear_brows(out,brows) if brows else out

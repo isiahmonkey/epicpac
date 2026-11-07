@@ -21,7 +21,7 @@ src=src.replace("_hidefeet=any(","_hidefeet=False and any(")      # keep the fee
 G={'__name__':'stage'}; exec(compile(src,'head1','exec'),G)
 parts=G['parts']
 if os.environ.get('HEADSET'):
-    sys.path.insert(0,'/home/claude/work/staging'); import headset as _hs; parts+= _hs.parts(G['warp_from_vanilla']); print('headset parts',[p['name'] for p in parts if p['name'].startswith('hs_')])
+    sys.path.insert(0,'/home/claude/work/staging'); import headset as _hs; parts+= _hs.parts(G['warp_from_vanilla'],[p for p in parts if p['name']=='brows']); print('headset parts',[p['name'] for p in parts if p['name'].startswith('hs_')])
 from scipy.spatial import cKDTree
 out=[]; miss=[]
 for p in parts:
