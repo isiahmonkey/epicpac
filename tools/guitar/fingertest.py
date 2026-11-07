@@ -84,7 +84,7 @@ def rots_bind(t):
         for f in range(5):
             par=H; parb=Hb; ang=(THUMB if f==0 else CURL)*c[f]
             for k,suf in enumerate(('','1','2')):
-                n=VB+'%s_Finger%d%s'%(side,f,suf); Lb=RT.NL[VIX[n]][:3,:3]
+                n=VB+'%s_Finger%d%s'%(side,f,suf); Lb=BASE[n]   # rest = Kleiner's relaxed in-game finger pose (the bind pose splays the thumb straight out)
                 sgn=-1 if side=='L' else -1
                 W=par@Lb@Rz(sgn*ang[k]); R[n]=W; par=W
     return R
