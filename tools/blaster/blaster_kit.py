@@ -40,17 +40,24 @@ def build(preview=None):
     brown=(np.asarray(Image.open('/home/claude/work/blaster/grip_mask.png').convert('L').resize(d0.shape[1::-1])).astype(np.float32)/255)*((d0[...,0]>d0[...,2]*1.2).astype(np.float32))   # the grip's own UV island only (the brass wire stays brass)
     from scipy.ndimage import gaussian_filter
     brown=gaussian_filter(brown,1.5)[...,None]
+    ch_full=None
     chrome=gaussian_filter(np.asarray(Image.open('/home/claude/work/blaster/chrome_mask.png').convert('L').resize(d0.shape[1::-1])).astype(np.float32)/255,1.0)[...,None]
     sat=(d0.max(2)-d0.min(2))/np.maximum(d0.max(2),1)
     keep=gaussian_filter(((sat>0.22)&(d0.max(2)>70)).astype(np.float32)*(1-brown[...,0]),1.0)[...,None]   # brass wire, red lights, green sights: original colour
     keep=np.maximum(keep,0)
+    ch_full=chrome[...,0]
     dark=d0*(0.34*(1-chrome)+1.05*chrome); dark=dark*(1-keep)+d0*keep #                                         # 'Darker' finish: gunmetal body, polished chrome top barrel
     wood=d0*np.array([1.12,0.84,0.72])                                             # auburn wood grip
-    d=Image.fromarray(np.clip(dark*(1-brown)+wood*brown,0,255).astype(np.uint8))
+    nn=np.asarray(Image.open(TEX%'n').convert('RGB')).astype(np.float32)[...,:2]/127.5-1
+    gx=np.gradient(nn[...,0],axis=1); gy=np.gradient(nn[...,1],axis=0); div=gx+gy                      # >0 ridges, <0 grooves
+    cav=np.clip(-gaussian_filter(div,0.8)*6,0,1)                                                  # engraved letters / seams
+    edge=np.clip(gaussian_filter(div,0.8)*4,0,1)                                                  # raised edges catch light
+    shade=(1-0.75*cav+0.25*edge*(1-brown[...,0]))[...,None]
+    d=Image.fromarray(np.clip((dark*(1-brown)+wood*brown)*shade,0,255).astype(np.uint8))
     grip_im=Image.fromarray(np.clip(wood*brown+dark*(1-brown),0,255).astype(np.uint8))
     r=np.asarray(Image.open(TEX%'r').convert('L')).astype(np.float32)/255
     n=glb.cp_normal(Image.open(TEX%'n')).convert('RGBA'); ch=chrome[...,0]; ch=np.asarray(Image.fromarray((ch*255).astype(np.uint8)).resize(n.size)).astype(np.float32)/255
-    gl=np.clip((1-r)*1.25,0,1)**1.4*0.22*(1-ch)+0.85*ch
+    gl=np.clip((1-r)*1.1,0,1)**1.6*0.35*(1-ch)+0.75*ch
     n.putalpha(Image.fromarray((gl*255).astype(np.uint8)))   # gloss in the normal alpha = phong / envmap mask
     e=np.asarray(Image.open(TEX%'e').convert('RGB').resize(d.size)).astype(np.float32)
     gr=((d0[...,1]>d0[...,0]*1.2)&(d0[...,1]>d0[...,2]*1.2)&(d0[...,1]>60)).astype(np.float32)
@@ -58,9 +65,11 @@ def build(preview=None):
     bd=Image.open(TEX%'bd').convert('RGB'); bn=glb.cp_normal(Image.open(TEX%'bn')).convert('RGBA'); br=np.asarray(Image.open(TEX%'br').convert('L')).astype(np.float32)/255
     bn.putalpha(Image.fromarray((np.clip((1-br)*1.25,0,1)**1.4*255).astype(np.uint8)))
     def save(name,im,normal=False):
-        im.save(OUT+'materialsrc/%s.tga'%name); open(OUT+'materialsrc/%s.txt'%name,'w').write('nocompress 0\n'+('normal 1\n' if normal else ''))
+        im.save(OUT+'materialsrc/%s.tga'%name); open(OUT+'materialsrc/%s.txt'%name,'w').write('nocompress 1\nnomip 0\n'+('normal 1\n' if normal else ''))
     save('br_blaster_d',d); save('br_blaster_resin',Image.new('RGBA',(16,16),(120,60,30,40))); save('br_blaster_grip_d',grip_im); save('br_blaster_n',n,True); save('br_blaster_e',e); save('br_blaster_bullet_d',bd); save('br_blaster_bullet_n',bn,True)
-    METAL=' "$bumpmap" "{D}/{N}"\n "$phong" "1"\n "$phongexponent" "40"\n "$phongboost" "1.2"\n "$phongfresnelranges" "[0.2 0.5 1]"\n "$envmap" "env_cubemap"\n "$normalmapalphaenvmapmask" "1"\n "$envmaptint" "[.14 .14 .15]"\n "$envmapcontrast" "1"\n "$envmapsaturation" "0"\n'
+    ex=np.zeros(d0.shape[:2]+(3,),np.float32); ex[...,0]=np.clip((1-r)*0.55+0.08+0.25*ch_full,0,1)*255; ex[...,1]=255*(1-brown[...,0])   # R exponent, G albedo-tint mask
+    save('br_blaster_exp',Image.fromarray(ex.astype(np.uint8)))
+    METAL=' "$bumpmap" "{D}/{N}"\n "$phong" "1"\n "$phongexponenttexture" "{D}/br_blaster_exp"\n "$phongalbedotint" "1"\n "$phongalbedoboost" "6"\n "$phongboost" "1.6"\n "$phongfresnelranges" "[0.35 0.65 1]"\n "$envmap" "env_cubemap"\n "$normalmapalphaenvmapmask" "1"\n "$envmaptint" "[.1 .1 .105]"\n "$envmapcontrast" "1"\n "$envmapsaturation" "0"\n'
     VMT={'body':('br_blaster_d',METAL.replace('{N}','br_blaster_n')+' "$selfillum" "1"\n "$selfillummask" "{D}/br_blaster_e"\n'),   # green sight dots + red lights glow
          'glow':('br_blaster_d',METAL.replace('{N}','br_blaster_n')+' "$selfillum" "1"\n "$selfillummask" "{D}/br_blaster_e"\n'),
          'sights':('br_blaster_e',' "$selfillum" "1"\n "$additive" "1"\n "$nocull" "1"\n'),
@@ -72,7 +81,7 @@ def build(preview=None):
         open(OUT+'materials/br_blaster_%s.vmt'%k,'w',newline='\r\n').write('"VertexLitGeneric"\n{\n "$basetexture" "%s/%s"\n%s}\n'%(MD,base,body.replace('{D}',MD)))
     if not os.path.exists(OUT+'materialsrc/br_blaster_rail.tga'):     # until the vanilla rail material arrives: the body's dark steel
         save('br_blaster_rail',Image.new('RGB',(64,64),(40,40,42))); save('br_blaster_rail_n',Image.new('RGBA',(64,64),(128,128,255,150)),True)
-    mats_=sorted({'br_blaster_%s'%k for k in VMT}|{'br_blaster_d','br_blaster_grip_d','br_blaster_resin','br_blaster_n','br_blaster_e','br_blaster_bullet_d','br_blaster_bullet_n','br_blaster_rail','br_blaster_rail_n'})
+    mats_=sorted({'br_blaster_%s'%k for k in VMT}|{'br_blaster_d','br_blaster_exp','br_blaster_grip_d','br_blaster_resin','br_blaster_n','br_blaster_e','br_blaster_bullet_d','br_blaster_bullet_n','br_blaster_rail','br_blaster_rail_n'})
     json.dump(dict(model=M,materials=mats_,bodygroups={'gun':['gun']},tris=len(T)),open(OUT+'plans/_%s.json'%M,'w'),indent=1)
     print(M,'tris',len(T),sorted(used))
 if __name__=='__main__': build()
