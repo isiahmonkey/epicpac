@@ -60,7 +60,8 @@ CARDS_DARK=' "$alphatest" "1"\n "$alphatestreference" "0.4"\n "$allowalphatocove
 EYES=' "$selfillum" "1"\n "$selfillumtint" "[2.2 2.2 2.2]"\n "$phong" "1"\n "$phongexponent" "60"\n "$phongboost" "1"\n'
 HAIR=' "$bumpmap" "{D}/{M}_n"\n "$alphatest" "1"\n "$alphatestreference" "0.4"\n "$allowalphatocoverage" "1"\n "$nocull" "1"\n'
 PLATE=' "$bumpmap" "{D}/{M}_n"\n "$normalmapalphaenvmapmask" "1"\n "$envmap" "environment maps/metal_generic_002"\n "$envmaptint" "[1.1 1.1 1.15]"\n "$envmapcontrast" "1"\n "$phong" "1"\n "$phongexponent" "60"\n "$phongboost" "5"\n "$phongfresnelranges" "[0.5 0.8 1]"\n "$alphatest" "1"\n "$alphatestreference" "0.5"\n'.replace('{D}',MATDIR).replace('{M}','token_{NM}')
-VMT_OVERRIDE={'hs_bd':BLACKMETAL,'hs_specs':BLACKMETAL,'hs_glass':' "$envmap" "env_cubemap"\n "$envmaptint" "[.25 .25 .27]"\n "$envmapfresnel" "1"\n "$phong" "1"\n "$phongexponent" "120"\n "$phongboost" "6"\n "$phongfresnelranges" "[0.3 0.7 1]"\n','ga_glass':' "$nocull" "1"\n "$envmap" "env_cubemap"\n "$envmaptint" "[.08 .08 .09]"\n "$phong" "1"\n "$phongexponent" "80"\n "$phongboost" "2"\n','eyeshadow':' "$translucent" "1"\n "$nocull" "1"\n','cyberware':BLACKMETAL,'ga_cyber':BLACKMETAL,'ga_fingers':BLACKMETAL,'ga_end':BLACKMETAL,'earcyber':BLACKMETAL,'piercing':BLACKMETAL,
+HSPLASTIC=' "$nocull" "1"\n "$phong" "1"\n "$phongexponent" "40"\n "$phongboost" "3"\n "$phongfresnelranges" "[0.3 0.7 1]"\n'
+VMT_OVERRIDE={'hs_bd':HSPLASTIC,'hs_specs':HSPLASTIC,'hs_glass':' "$envmap" "env_cubemap"\n "$envmaptint" "[.25 .25 .27]"\n "$envmapfresnel" "1"\n "$phong" "1"\n "$phongexponent" "120"\n "$phongboost" "6"\n "$phongfresnelranges" "[0.3 0.7 1]"\n','ga_glass':' "$nocull" "1"\n "$envmap" "env_cubemap"\n "$envmaptint" "[.08 .08 .09]"\n "$phong" "1"\n "$phongexponent" "80"\n "$phongboost" "2"\n','eyeshadow':' "$translucent" "1"\n "$nocull" "1"\n','cyberware':BLACKMETAL,'ga_cyber':BLACKMETAL,'ga_fingers':BLACKMETAL,'ga_end':BLACKMETAL,'earcyber':BLACKMETAL,'piercing':BLACKMETAL,
  'facecw_face':BLACKMETAL_N,'facecw_nose':BLACKMETAL_N,'eyes':EYES,
  'hair':HAIR,'hatfur':HAIR,'brows':' "$bumpmap" "{D}/{M}_n"\n'+CARDS_DARK.replace('"0.12"','"0.05"'),'brows_s7':CARDS_DARK,'brows_s14':CARDS_DARK,'lashes':CARDS_DARK,
  'haircap':HAIR.replace('"0.4"','"0.12"'),'bolero_ml':LEATHER,'bolerocuff_ml':LEATHER,'chain_silver':SILVER,'earring':SILVER,'nd_acc':SILVER,'vchain':SILVER,'vcross':SILVER}
@@ -133,7 +134,7 @@ VMTX={
  'cloth':' "$nocull" "1"\n "$phong" "1"\n "$phongexponent" "12"\n "$phongboost" "1.2"\n "$phongfresnelranges" "[0.4 0.7 1]"\n{A}',
 }
 VMT_OVERRIDE['skin']=VMTX['skin_head']+' "$nocull" "1"\n'   # face/lids drawn from both sides: no holes where CP's lid normals face inward
-TEXCAP={'skin':2048,'arms':2048,'body':1024,'mis_tank':2048,'hair':1024,'coatfur':1024,'jacketfur':1024}   # 2048 only where detail reads up close (face, tattooed arms, tank print); everything else 1024
+TEXCAP={'hs_bd':2048,'hs_specs':2048,'skin':2048,'arms':2048,'body':1024,'mis_tank':2048,'hair':1024,'coatfur':1024,'jacketfur':1024}   # 2048 only where detail reads up close (face, tattooed arms, tank print); everything else 1024
 def to_tga(im,nm):
     cap=TEXCAP.get(nm,512 if nm.startswith('ga_dec') else 1024); w,h=im.size; s=min(1.0,cap/max(w,h))
     if s<1: im=im.resize((max(4,int(w*s)),max(4,int(h*s))),Image.LANCZOS)
@@ -218,7 +219,7 @@ def covered(vp,vn,outer_names,reach=1.4,margin=2.4,both=False):
     if margin>0 and vis.any() and hid.any():   # keep a margin under the jacket's edges so no gap opens at the opening
         d,_=cKDTree(vp[vis]).query(vp[hid]); h=np.where(hid)[0]; hid[h[d<margin]]=False
     return hid
-METAL_MASKED={'vinyl','den_pants'}   # garments with metal hardware (boot chains, buckles, zips): metal areas reflect, stay bright
+METAL_MASKED={'vinyl','den_pants','hs_bd','hs_specs'}   # garments with metal hardware (boot chains, buckles, zips): metal areas reflect, stay bright
 def metal_of(nm,size):
     mr=STAGED_MATS.get(nm,{}).get('mr')
     if mr is None: return None
@@ -317,6 +318,7 @@ def add_jiggle_bone(name,parent,pivot,length):
     VN.append(name); VP.append(RT.vn.index(parent)); NLX.append(np.linalg.inv(W)@E); JIGGLE[name]=length
     return len(VN)-1
 STAGED_MATS=pickle.load(open('/home/claude/work/token/staged_mats.pkl','rb')) if os.path.exists('/home/claude/work/token/staged_mats.pkl') else {}
+if os.path.exists('/home/claude/work/headset/headset_mats.pkl'): STAGED_MATS.update(pickle.load(open('/home/claude/work/headset/headset_mats.pkl','rb')))
 DERIVED_NORMAL={'hair':12.0,'hatfur':6.0,'haircap':8.0}
 # name -> [(offset mm, alphatest ref or None = same material)]
 SHELLS={'facecw_face':[(0.2*k,None) for k in range(1,13)],'facecw_nose':[(0.2*k,None) for k in range(1,13)],
@@ -410,12 +412,12 @@ def main():
             Image.fromarray(((n*0.5+0.5)*255).astype(np.uint8)).save(KIT+'materialsrc/%s_%s_n.tga'%(NAME,nm)); open(KIT+'materialsrc/%s_%s_n.txt'%(NAME,nm),'w').write('nocompress 0\nnormal 1\n')
         elif nm in STAGED_MATS and STAGED_MATS[nm].get('normal') is not None and nm not in DERIVED_NORMAL and nm not in ('facecw_face','facecw_nose'):
             # the staging material's own normal map (CP garment normal + layer detail), gloss mask in alpha = Source phong mask
-            sm=STAGED_MATS[nm]; n=sm['normal'].convert('RGB').resize((2048,2048) if nm in ('skin',) else (1024,1024),Image.LANCZOS)
+            sm=STAGED_MATS[nm]; n=sm['normal'].convert('RGB').resize((2048,2048) if nm in ('skin','hs_bd','hs_specs') else (1024,1024),Image.LANCZOS)
             if sm.get('mr') is not None: rough=np.asarray(sm['mr'].convert('RGB').resize(n.size,Image.LANCZOS)).astype(np.float32)[...,1]/255
             else: rough=np.full(n.size[::-1],float(sm.get('rough') or 0.6),np.float32)
             gloss=np.clip((1-rough)*1.3,0,1)**1.5
             if nm in METAL_MASKED and sm.get('mr') is not None:
-                mt=np.asarray(sm['mr'].convert('RGB').resize(n.size,Image.LANCZOS)).astype(np.float32)[...,2]/255; gloss=np.clip(mt*(mt>0.6),0,1)   # only real metal reflects
+                mt=np.asarray(sm['mr'].convert('RGB').resize(n.size,Image.LANCZOS)).astype(np.float32)[...,2]/255; gloss=np.clip(mt*(mt>0.6),0,1) if not nm.startswith('hs_') else np.clip(mt+0.35*gloss,0,1)   # only real metal reflects (headset: glossy plastic gets a little too)
             n=n.convert('RGBA'); n.putalpha(Image.fromarray((gloss*255).astype(np.uint8)))
             n.save(KIT+'materialsrc/%s_%s_n.tga'%(NAME,nm)); open(KIT+'materialsrc/%s_%s_n.txt'%(NAME,nm),'w').write('nocompress 0\nnormal 1\n'); NDONE.add(nm)
         elif nm in NORMALS and os.path.exists(NORMALS[nm]):
