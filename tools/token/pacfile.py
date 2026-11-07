@@ -35,6 +35,10 @@ root=part('group','Token - %s'%oid,dict(OwnerName='self'),[
     part('custom_animation','whiskey stance',dict(URL=ANIM%'token_whiskey',AnimationType='stance',Interpolation='linear',StopOnHide=True,Rate=1)),
     part('model2','token_drinkware',dict(Model=model('token_drinkware'),BoneMerge=True)),
   ]),
+  part('group','Bouncer (pac_event bouncer 2)',{},[
+    part('event','show while bouncer is on',dict(Event='command',Operator='equal',Arguments='bouncer@@0@@0',Invert=True)),
+    part('custom_animation','bouncer stance',dict(URL=ANIM%'token_bouncer',AnimationType='stance',Interpolation='linear',StopOnHide=True,Rate=1)),
+  ]),
 ])
 out=B+'pac3_outfits/token_%s.txt'%oid
 open(out,'w',newline='\n').write('[1] = %s,\n'%lua(root,2))
