@@ -37,11 +37,14 @@ def build(preview=None):
         '$model "%s_bind" "%s_bind.smd"'%(M,M),'$bodygroup "gun"\n{\n studio "%s_body.smd"\n}'%M,'$sequence "idle" "%s_bind.smd" fps 1'%M])+'\n')
     # ---- textures / materials
     d0=np.asarray(Image.open(TEX%'d').convert('RGB')).astype(np.float32)
-    brown=((d0[...,0]>d0[...,2]*1.35)&(d0[...,0]>60)).astype(np.float32)          # the grip's wood/resin patch
+    brown=(np.asarray(Image.open('/home/claude/work/blaster/grip_mask.png').convert('L').resize(d0.shape[1::-1])).astype(np.float32)/255)*((d0[...,0]>d0[...,2]*1.2).astype(np.float32))   # the grip's own UV island only (the brass wire stays brass)
     from scipy.ndimage import gaussian_filter
     brown=gaussian_filter(brown,1.5)[...,None]
     chrome=gaussian_filter(np.asarray(Image.open('/home/claude/work/blaster/chrome_mask.png').convert('L').resize(d0.shape[1::-1])).astype(np.float32)/255,1.0)[...,None]
-    dark=d0*(0.34*(1-chrome)+1.05*chrome)                                          # 'Darker' finish: gunmetal body, polished chrome top barrel
+    sat=(d0.max(2)-d0.min(2))/np.maximum(d0.max(2),1)
+    keep=gaussian_filter(((sat>0.22)&(d0.max(2)>70)).astype(np.float32)*(1-brown[...,0]),1.0)[...,None]   # brass wire, red lights, green sights: original colour
+    keep=np.maximum(keep,0)
+    dark=d0*(0.34*(1-chrome)+1.05*chrome); dark=dark*(1-keep)+d0*keep #                                         # 'Darker' finish: gunmetal body, polished chrome top barrel
     wood=d0*np.array([1.12,0.84,0.72])                                             # auburn wood grip
     d=Image.fromarray(np.clip(dark*(1-brown)+wood*brown,0,255).astype(np.uint8))
     grip_im=Image.fromarray(np.clip(wood*brown+dark*(1-brown),0,255).astype(np.uint8))
