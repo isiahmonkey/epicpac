@@ -6,7 +6,9 @@ B='/mnt/user-data/outputs/token_build/'
 oid=sys.argv[1]; url=sys.argv[2].rstrip('/') if len(sys.argv)>2 else None
 plan=json.load(open(B+'plans/%s.json'%oid))
 uid=lambda s: hashlib.sha1(('token/'+oid+'/'+s).encode()).hexdigest()
+ANIM_V=1
 model=lambda m: (url+'/%s_pac3.zip'%m) if url else 'models/player/token/%s.mdl'%m
+ANIM='https://raw.githubusercontent.com/isiahmonkey/epicpac/main/anim/%s.json?v='+str(ANIM_V)
 class Vec(tuple): pass
 class Ang(tuple): pass
 def lua(v,t=1):
@@ -28,6 +30,11 @@ root=part('group','Token - %s'%oid,dict(OwnerName='self'),[
   part('model2','token_earring',dict(Model=model('token_earring'),BoneMerge=True)),   # swings via its own jigglebone
   part('model2','token_hat',dict(Model=model('token_hat'),BoneMerge=True),[
     part('event','hide_hat (pac_event hide_hat 2)',dict(Event='command',Operator='equal',Arguments='hide_hat@@0@@0',Invert=False))]),
+  part('group','Whiskey (pac_event whiskey 2)',{},[
+    part('event','show while whiskey is on',dict(Event='command',Operator='equal',Arguments='whiskey@@0@@0',Invert=True)),
+    part('custom_animation','whiskey stance',dict(URL=ANIM%'token_whiskey',AnimationType='stance',Interpolation='linear',StopOnHide=True,Rate=1)),
+    part('model2','token_drinkware',dict(Model=model('token_drinkware'),BoneMerge=True)),
+  ]),
 ])
 out=B+'pac3_outfits/token_%s.txt'%oid
 open(out,'w',newline='\n').write('[1] = %s,\n'%lua(root,2))
