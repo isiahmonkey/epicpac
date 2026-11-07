@@ -7,6 +7,7 @@ the wrong pivot. Here every hand bone transform is fitted from the part's own bi
 so in Token's bind every finger lies exactly on its Kleiner finger bone and bends about the right knuckle."""
 import numpy as np, retarget as RT
 VB='ValveBiped.Bip01_'
+THUMB_FIT=True    # False: keep Cyberpunk's thumb shape (thumb segments follow the hand fit only)
 FN={'0':'Thumb','1':'Index','2':'Middle','3':'Ring','4':'Pinky'}
 def _rb(a,b):
     a=a/np.linalg.norm(a); b=b/np.linalg.norm(b); v=np.cross(a,b); c=a@b
@@ -42,7 +43,7 @@ def part_D(bones,bonepos):
             vtip=V(s,vb[2])+last[:3,:3]@np.array([0.95*np.linalg.norm(RT.NL[RT.vn.index(VB+'%s_Finger%s2'%(s,k))][:3,3]),0,0])
             P=[raw(S+'Hand%s%d'%(f,d)) for d in ds]; P.append(P[-1]+(P[-1]-P[-2])*0.8 if len(P)>1 else P[-1])
             VP=[V(s,vb[d-1]) for d in ds]+[vtip]
-            for i,d in enumerate(ds): out[S+'Hand%s%d'%(f,d)]=_seg(P[i],P[i+1],VP[i],VP[i+1])
+            for i,d in enumerate(ds): out[S+'Hand%s%d'%(f,d)]=_seg(P[i],P[i+1],VP[i],VP[i+1]) if (k!='0' or THUMB_FIT) else Mh
     return out
 def retarget(pos,nrm,ji,jw,bones,bonepos):
     """RT.retarget with the hand/finger transforms fitted from this part's own bind"""

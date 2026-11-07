@@ -15,6 +15,7 @@ def thumb_rename(n):
     return n
 _BASEBP={}
 TRANSFER=True
+THENAR=True
 _BASEW={}
 def _base_weights(side):
     """base hand vertices (CP bind) with their smoothed weights by bone NAME"""
@@ -52,7 +53,24 @@ def hand(side,segs=None):
         if TRANSFER: _transfer(g,side)
     for k,s in enumerate(g['subs']):
         P,N,lk=handfit.retarget(np.asarray(s['pos'],float),np.asarray(s.get('nrm'),float)[:,:3],np.asarray(s['ji']),np.asarray(s['jw']),g['bones'],g['bonepos'])
+        if THENAR: lk=thenar_links(P,lk,side)
         out.append(dict(pos=P,nrm=N,lk=lk,idx=np.asarray(s['idx']).reshape(-1,3),uv=np.asarray(s['uv0']),chunk=s.get('chunk',k)))
+    return out
+THENAR_R=1.1      # in: reach of the thumb-base (Finger0) weights over the ball of the thumb and the web
+def thenar_links(P,lk,side,R=THENAR_R):
+    """Kleiner's thumb base bone (Finger0) moves ~31 deg in the idle, but Cyberpunk's hand has no thumb-metacarpal weights,
+    so the thumb swung while the ball of the thumb and the web stayed on the hand: the web flap. Hand weight near the
+    Finger0->Finger01 segment is handed to Finger0 with a smooth falloff, the way Valve hands are weighted."""
+    S=side.upper(); i0=RT.vn.index(VB+S+'_Finger0'); i1=RT.vn.index(VB+S+'_Finger01'); ih=RT.vn.index(VB+S+'_Hand')
+    a=RT.NW[i0][:3,3]; b=RT.NW[i1][:3,3]; ab=b-a
+    u=np.clip(((P-a)@ab)/(ab@ab),-0.6,1.0); d=np.linalg.norm(P-(a+u[:,None]*ab),axis=1)
+    f=np.clip(1-d/R,0,1); f=f*f*(3-2*f)
+    out=[]
+    for l,fv in zip(lk,f):
+        w=dict(l)
+        if fv>0 and ih in w:
+            mv=w[ih]*fv; w[ih]-=mv; w[i0]=w.get(i0,0)+mv
+        top=sorted(w.items(),key=lambda x:-x[1])[:3]; s_=sum(x for _,x in top); out.append([(b_,x/s_) for b_,x in top if x>1e-4])
     return out
 def wrist_cut(parts,side,margin=0.6):
     """keep triangles at or beyond the wrist (hand side), like the Gorilla hand did"""

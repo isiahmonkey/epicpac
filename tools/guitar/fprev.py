@@ -10,7 +10,7 @@ for k in [k for k in P.MESH if 'ga_' in k or 'hat' in k]: P.MESH.pop(k)
 for k in [k for k in list(P.MESH) if 'ga_' in k]: P.MESH.pop(k)
 P.MESH={k:v for k,v in P.MESH.items() if k!='token_arms'}   # base arms hidden; the test model carries the whole arm
 
-for m,v in P.load(K+'modelsrc/token_testhands_body.smd').items(): P.MESH['test_'+m]=v
+for m,v in P.load(K+'modelsrc/%s_body.smd'%os.environ.get('HANDS','token_testhands')).items(): P.MESH['test_'+m]=v
 def build(times,out,gap=30.0):
     G=glb.GLB(); MAT={}
     for fi,t in enumerate(times):

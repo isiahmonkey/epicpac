@@ -11,11 +11,16 @@ import retarget as RT, smd, xf, gbase, basehand as BH
 OUT='/mnt/user-data/outputs/token_build/'; VB='ValveBiped.Bip01_'
 VIX={n:i for i,n in enumerate(RT.vn)}
 # ------------------------------------------------------------------ model
+import os as _os
+VARIANT=_os.environ.get('VARIANT','')
 def build_model():
+    import handfit
+    if 'nothumbfit' in VARIANT: handfit.THUMB_FIT=False
+    BH.THENAR='thenar' in VARIANT or 'nothumbfit' in VARIANT
     import token_kit as K
     T=[]
     for s in 'lr':
-        for p in BH.hand(s):
+        for p in (BH.hand_smoothed(s,8,cut=False) if 'smooth' in VARIANT else BH.hand(s)):
             # the whole Cyberpunk base arm (hand + forearm + upper arm), one continuous mesh: no wrist seam. Replaces the
             # Gorilla arm skin in the test (its hidden hand stub was the swollen blob seen in game).
             # orient every triangle the way its normals point and write as-is (Source culls back faces; the raw Cyberpunk
@@ -23,7 +28,7 @@ def build_model():
             Fi=p['idx'].copy(); a,b,c=p['pos'][Fi[:,0]],p['pos'][Fi[:,1]],p['pos'][Fi[:,2]]
             bad=(np.cross(b-a,c-a)*p['nrm'][Fi].sum(1)).sum(1)<0; Fi[bad]=Fi[bad][:,[0,2,1]]
             T+=smd.part_tris(p['pos'],p['nrm'],p['uv'],Fi.ravel(),p['lk'],'token_arms',flip=False)
-    M='token_testhands'
+    M='token_testhands'+(_os.environ.get('SUFFIX',''))
     smd.write(OUT+'modelsrc/%s_bind.smd'%M,K.VN,K.VP,K.NLX,[]); smd.write(OUT+'modelsrc/%s_body.smd'%M,K.VN,K.VP,K.NLX,T)
     used=sorted({b for _,vs in T for v in vs for b,_ in v[3]})
     qc=['$modelname "player/token/%s.mdl"'%M,'$cdmaterials "models/player/token/"','$surfaceprop "flesh"','$model "%s_bind" "%s_bind.smd"'%(M,M),
