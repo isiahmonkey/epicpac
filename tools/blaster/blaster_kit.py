@@ -50,7 +50,7 @@ def build(preview=None):
     grip_im=Image.fromarray(np.clip(wood*brown+dark*(1-brown),0,255).astype(np.uint8))
     r=np.asarray(Image.open(TEX%'r').convert('L')).astype(np.float32)/255
     n=glb.cp_normal(Image.open(TEX%'n')).convert('RGBA'); ch=chrome[...,0]; ch=np.asarray(Image.fromarray((ch*255).astype(np.uint8)).resize(n.size)).astype(np.float32)/255
-    gl=np.clip((1-r)*1.25,0,1)**1.4*0.45*(1-ch)+0.95*ch
+    gl=np.clip((1-r)*1.25,0,1)**1.4*0.22*(1-ch)+0.85*ch
     n.putalpha(Image.fromarray((gl*255).astype(np.uint8)))   # gloss in the normal alpha = phong / envmap mask
     e=np.asarray(Image.open(TEX%'e').convert('RGB').resize(d.size)).astype(np.float32)
     gr=((d0[...,1]>d0[...,0]*1.2)&(d0[...,1]>d0[...,2]*1.2)&(d0[...,1]>60)).astype(np.float32)
@@ -60,7 +60,7 @@ def build(preview=None):
     def save(name,im,normal=False):
         im.save(OUT+'materialsrc/%s.tga'%name); open(OUT+'materialsrc/%s.txt'%name,'w').write('nocompress 0\n'+('normal 1\n' if normal else ''))
     save('br_blaster_d',d); save('br_blaster_resin',Image.new('RGBA',(16,16),(120,60,30,40))); save('br_blaster_grip_d',grip_im); save('br_blaster_n',n,True); save('br_blaster_e',e); save('br_blaster_bullet_d',bd); save('br_blaster_bullet_n',bn,True)
-    METAL=' "$bumpmap" "{D}/{N}"\n "$phong" "1"\n "$phongexponent" "40"\n "$phongboost" "3"\n "$phongfresnelranges" "[0.4 0.7 1]"\n "$envmap" "env_cubemap"\n "$normalmapalphaenvmapmask" "1"\n "$envmaptint" "[.7 .7 .72]"\n "$envmapcontrast" "1"\n'
+    METAL=' "$bumpmap" "{D}/{N}"\n "$phong" "1"\n "$phongexponent" "40"\n "$phongboost" "1.2"\n "$phongfresnelranges" "[0.2 0.5 1]"\n "$envmap" "env_cubemap"\n "$normalmapalphaenvmapmask" "1"\n "$envmaptint" "[.14 .14 .15]"\n "$envmapcontrast" "1"\n "$envmapsaturation" "0"\n'
     VMT={'body':('br_blaster_d',METAL.replace('{N}','br_blaster_n')+' "$selfillum" "1"\n "$selfillummask" "{D}/br_blaster_e"\n'),   # green sight dots + red lights glow
          'glow':('br_blaster_d',METAL.replace('{N}','br_blaster_n')+' "$selfillum" "1"\n "$selfillummask" "{D}/br_blaster_e"\n'),
          'sights':('br_blaster_e',' "$selfillum" "1"\n "$additive" "1"\n "$nocull" "1"\n'),
