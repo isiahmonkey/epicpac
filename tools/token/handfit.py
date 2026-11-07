@@ -24,6 +24,7 @@ def part_D(bones,bonepos):
         if S+'Hand' not in B: continue
         # hand: similarity (Umeyama) of wrist + finger roots
         keys=[(S+'Hand','Hand')]+[(S+'Hand%s1'%FN[k],'Finger'+k) for k in '01234' if S+'Hand%s1'%FN[k] in B]
+        if S+'HandThumb1' not in B and S+'HandThumb2' in B: keys.append((S+'HandThumb2','Finger01'))   # renamed thumb (see basehand.thumb_rename)
         src=np.array([raw(a) for a,_ in keys]); dst=np.array([V(s,b) for _,b in keys]); wts=np.array([25.0]+[1]*(len(keys)-1))
         ms=(src*wts[:,None]).sum(0)/wts.sum(); md=(dst*wts[:,None]).sum(0)/wts.sum(); X=src-ms; Y=dst-md
         U,sv,Vt=np.linalg.svd((Y*wts[:,None]).T@X); E=np.diag([1,1,np.sign(np.linalg.det(U@Vt))]); Rh=U@E@Vt
@@ -32,12 +33,16 @@ def part_D(bones,bonepos):
         for n in B:
             if n.startswith(S+'InHand'): out[n]=Mh
         for k,f in FN.items():
-            j=[S+'Hand%s%d'%(f,i) for i in (1,2,3) if S+'Hand%s%d'%(f,i) in B]
-            if not j: continue
-            P=[raw(n) for n in j]; P.append(P[-1]+(P[-1]-P[-2])*0.8 if len(P)>1 else P[-1])
-            vb=['Finger'+k,'Finger%s1'%k,'Finger%s2'%k]; VP=[V(s,b) for b in vb]
-            last=RT.NW[RT.vn.index(VB+'%s_Finger%s2'%(s,k))]; VP.append(VP[-1]+last[:3,:3]@np.array([0.95*np.linalg.norm(RT.NL[RT.vn.index(VB+'%s_Finger%s2'%(s,k))][:3,3]),0,0]))
-            for i,n in enumerate(j): out[n]=_seg(P[i],P[i+1],VP[i],VP[i+1])
+            # CP joint number d (1..3) goes on Valve bone d-1 (Finger k, k1, k2). Cyberpunk thumbs only have joints 2 and 3 in
+            # this numbering (basehand renames Thumb1/2 -> Thumb2/3: Thumb1 sits on Kleiner's Finger01, 0.24 in away, not Finger0)
+            ds=[d for d in (1,2,3) if S+'Hand%s%d'%(f,d) in B]
+            if not ds: continue
+            vb=['Finger'+k,'Finger%s1'%k,'Finger%s2'%k]
+            last=RT.NW[RT.vn.index(VB+'%s_Finger%s2'%(s,k))]
+            vtip=V(s,vb[2])+last[:3,:3]@np.array([0.95*np.linalg.norm(RT.NL[RT.vn.index(VB+'%s_Finger%s2'%(s,k))][:3,3]),0,0])
+            P=[raw(S+'Hand%s%d'%(f,d)) for d in ds]; P.append(P[-1]+(P[-1]-P[-2])*0.8 if len(P)>1 else P[-1])
+            VP=[V(s,vb[d-1]) for d in ds]+[vtip]
+            for i,d in enumerate(ds): out[S+'Hand%s%d'%(f,d)]=_seg(P[i],P[i+1],VP[i],VP[i+1])
     return out
 def retarget(pos,nrm,ji,jw,bones,bonepos):
     """RT.retarget with the hand/finger transforms fitted from this part's own bind"""

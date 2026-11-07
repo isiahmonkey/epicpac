@@ -5,6 +5,14 @@ sys.path[:0]=['/home/claude/work/token','/home/claude/work/guitar','/home/claude
 import cr2w, mesh, retarget as RT, handfit
 VB='ValveBiped.Bip01_'
 A='/mnt/user-data/uploads/characters/common/player_base_bodies/player_man_average/arms_hq/a0_000_pma_base_hq__%s.mesh'
+def thumb_rename(n):
+    """Cyberpunk's thumb has two joints (Thumb1, Thumb2) that sit on Kleiner's Finger01 / Finger02 (0.24 / 0.44 in).
+    The shared mapping puts Thumb1 on Finger0, 1.6 in back in the palm, which pushed the thumb into the hand. Renaming them
+    Thumb2 / Thumb3 lands them on Finger01 / Finger02 through the existing map."""
+    for S in ('Left','Right'):
+        if n==S+'HandThumb2': return S+'HandThumb3'
+        if n==S+'HandThumb1': return S+'HandThumb2'
+    return n
 _BASEBP={}
 TRANSFER=True
 _BASEW={}
@@ -32,12 +40,13 @@ def _transfer(g,side):
         s['ji']=ji; s['jw']=jw
 def base_bonepos(side):
     if side not in _BASEBP:
-        g=mesh.decode(cr2w.load_loose(A%side)); _BASEBP[side]=dict(zip(g['bones'],np.asarray(g['bonepos'],float)))
+        g=mesh.decode(cr2w.load_loose(A%side)); _BASEBP[side]=dict(zip([thumb_rename(n) for n in g['bones']],np.asarray(g['bonepos'],float)))
     return _BASEBP[side]
 def hand(side,segs=None):
     """segs: a garment on the hand (glove). Garment meshes are modelled on the player's base hand, but modded ones can carry a
     stale bone bind (the Judy gloves' joints sit ~5 cm off their own vertices), so the base hand's joints are used for every bone it has."""
     g=mesh.decode(segs if segs is not None else cr2w.load_loose(A%side)); out=[]
+    g['bones']=[thumb_rename(n) for n in g['bones']]
     if segs is not None:
         bb=base_bonepos(side); g['bonepos']=[bb.get(b,p) for b,p in zip(g['bones'],g['bonepos'])]
         if TRANSFER: _transfer(g,side)

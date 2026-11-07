@@ -18,7 +18,11 @@ def build_model():
         for p in BH.hand(s):
             # the whole Cyberpunk base arm (hand + forearm + upper arm), one continuous mesh: no wrist seam. Replaces the
             # Gorilla arm skin in the test (its hidden hand stub was the swollen blob seen in game).
-            T+=smd.part_tris(p['pos'],p['nrm'],p['uv'],p['idx'].ravel(),p['lk'],'token_arms')
+            # orient every triangle the way its normals point and write as-is (Source culls back faces; the raw Cyberpunk
+            # winding left parts of the hand invisible from some angles in game)
+            Fi=p['idx'].copy(); a,b,c=p['pos'][Fi[:,0]],p['pos'][Fi[:,1]],p['pos'][Fi[:,2]]
+            bad=(np.cross(b-a,c-a)*p['nrm'][Fi].sum(1)).sum(1)<0; Fi[bad]=Fi[bad][:,[0,2,1]]
+            T+=smd.part_tris(p['pos'],p['nrm'],p['uv'],Fi.ravel(),p['lk'],'token_arms',flip=False)
     M='token_testhands'
     smd.write(OUT+'modelsrc/%s_bind.smd'%M,K.VN,K.VP,K.NLX,[]); smd.write(OUT+'modelsrc/%s_body.smd'%M,K.VN,K.VP,K.NLX,T)
     used=sorted({b for _,vs in T for v in vs for b,_ in v[3]})
