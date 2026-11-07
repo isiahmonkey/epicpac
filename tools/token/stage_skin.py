@@ -20,13 +20,15 @@ src=open('/home/claude/work/staging/head1.py').read().split('parts.sort(')[0].re
 src=src.replace("_hidefeet=any(","_hidefeet=False and any(")      # keep the feet skin: it becomes its own bodygroup
 G={'__name__':'stage'}; exec(compile(src,'head1','exec'),G)
 parts=G['parts']
+if os.environ.get('HEADSET'):
+    sys.path.insert(0,'/home/claude/work/staging'); import headset as _hs; parts+= _hs.parts(G['warp_from_vanilla']); print('headset parts',[p['name'] for p in parts if p['name'].startswith('hs_')])
 from scipy.spatial import cKDTree
 out=[]; miss=[]
 for p in parts:
     s=REG.get(id(p['idx']))
     if s is not None and len(s['pos'])==len(p['pos']) and len(s['_bones'])>0:
         p=dict(p,ji=s['ji'],jw=s['jw'],bones=s['_bones'],bonepos=s['_bonepos'],chunk=s.get('chunk'),src_nrm=s.get('nrm'))
-    else: miss.append(p)
+    elif 'ji' not in p: miss.append(p)
     out.append(p)
 sk=[p for p in out if 'ji' in p]
 # extra donors: vanilla male head (+eyes) - has real bone names; warped onto Token's (Hades/Dionysus) face

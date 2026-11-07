@@ -43,6 +43,9 @@ LAYOUT={
    'legs_acc':{'wallet_chain_silver':['chain_silver']},
    'feet':{'vinyl_platform_black':['vinyl'],'tron_red':['tron_ml','tron_dec','tron_glow'],'edgerunner_boots':['den_boots']},
  },
+ 'token_headwear':{
+   'head_acc':{'headset_black':['hs_bd','hs_specs','hs_glass']},
+ },
  'token_jewelry':{
    'neck_jewelry':{'valentino_cross_silver':['vchain','vcross']},
    'wrist_left':{'nd_cross_bracelet':['nd_acc']},
@@ -57,7 +60,7 @@ CARDS_DARK=' "$alphatest" "1"\n "$alphatestreference" "0.4"\n "$allowalphatocove
 EYES=' "$selfillum" "1"\n "$selfillumtint" "[2.2 2.2 2.2]"\n "$phong" "1"\n "$phongexponent" "60"\n "$phongboost" "1"\n'
 HAIR=' "$bumpmap" "{D}/{M}_n"\n "$alphatest" "1"\n "$alphatestreference" "0.4"\n "$allowalphatocoverage" "1"\n "$nocull" "1"\n'
 PLATE=' "$bumpmap" "{D}/{M}_n"\n "$normalmapalphaenvmapmask" "1"\n "$envmap" "environment maps/metal_generic_002"\n "$envmaptint" "[1.1 1.1 1.15]"\n "$envmapcontrast" "1"\n "$phong" "1"\n "$phongexponent" "60"\n "$phongboost" "5"\n "$phongfresnelranges" "[0.5 0.8 1]"\n "$alphatest" "1"\n "$alphatestreference" "0.5"\n'.replace('{D}',MATDIR).replace('{M}','token_{NM}')
-VMT_OVERRIDE={'ga_glass':' "$nocull" "1"\n "$envmap" "env_cubemap"\n "$envmaptint" "[.08 .08 .09]"\n "$phong" "1"\n "$phongexponent" "80"\n "$phongboost" "2"\n','eyeshadow':' "$translucent" "1"\n "$nocull" "1"\n','cyberware':BLACKMETAL,'ga_cyber':BLACKMETAL,'ga_fingers':BLACKMETAL,'ga_end':BLACKMETAL,'earcyber':BLACKMETAL,'piercing':BLACKMETAL,
+VMT_OVERRIDE={'hs_bd':BLACKMETAL,'hs_specs':BLACKMETAL,'hs_glass':' "$envmap" "env_cubemap"\n "$envmaptint" "[.25 .25 .27]"\n "$envmapfresnel" "1"\n "$phong" "1"\n "$phongexponent" "120"\n "$phongboost" "6"\n "$phongfresnelranges" "[0.3 0.7 1]"\n','ga_glass':' "$nocull" "1"\n "$envmap" "env_cubemap"\n "$envmaptint" "[.08 .08 .09]"\n "$phong" "1"\n "$phongexponent" "80"\n "$phongboost" "2"\n','eyeshadow':' "$translucent" "1"\n "$nocull" "1"\n','cyberware':BLACKMETAL,'ga_cyber':BLACKMETAL,'ga_fingers':BLACKMETAL,'ga_end':BLACKMETAL,'earcyber':BLACKMETAL,'piercing':BLACKMETAL,
  'facecw_face':BLACKMETAL_N,'facecw_nose':BLACKMETAL_N,'eyes':EYES,
  'hair':HAIR,'hatfur':HAIR,'brows':' "$bumpmap" "{D}/{M}_n"\n'+CARDS_DARK.replace('"0.12"','"0.05"'),'brows_s7':CARDS_DARK,'brows_s14':CARDS_DARK,'lashes':CARDS_DARK,
  'haircap':HAIR.replace('"0.4"','"0.12"'),'bolero_ml':LEATHER,'bolerocuff_ml':LEATHER,'chain_silver':SILVER,'earring':SILVER,'nd_acc':SILVER,'vchain':SILVER,'vcross':SILVER}
