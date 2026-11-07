@@ -158,6 +158,21 @@ def rigid_pieces(Fi,lk):
     for l,c in acc.items():
         top=c.most_common(2); t=sum(w for _,w in top); comp[l]=[(b,w/t) for b,w in top]
     return [comp[l] for l in lab]
+def rigid_small_pieces(Fi,lk,vp,max_extent=1.0):
+    """rigid_pieces, but only for plates smaller than max_extent (in): a whole-hand shell made rigid would follow one finger"""
+    from scipy.sparse import coo_matrix; from scipy.sparse.csgraph import connected_components
+    n=len(lk); g=coo_matrix((np.ones(len(Fi)*3),(np.r_[Fi[:,0],Fi[:,1],Fi[:,2]],np.r_[Fi[:,1],Fi[:,2],Fi[:,0]])),shape=(n,n))
+    _,lab=connected_components(g,directed=False); rig=rigid_pieces(Fi,lk); out=list(lk); nr=0
+    for l in np.unique(lab):
+        ix=np.where(lab==l)[0]
+        fingers={RT.vn[b].split('_Finger')[1][0]+RT.vn[b][17] for v in ix for b,w in lk[v] if 'Finger' in RT.vn[b] and w>0.05}
+        if np.ptp(vp[ix],0).max()<=max_extent or len(fingers)<=1:
+            for v in ix: out[v]=rig[v]                       # a plate, or a shell on one finger only: solid metal
+            nr+=1
+        elif REFIT_SHELLS:                                   # a shell spanning several fingers: split it along Kleiner's finger segments
+            sub=refit_hand(vp[ix],[lk[v] for v in ix])
+            for v,l in zip(ix,sub): out[v]=l
+    return out
 def smooth_hand_links(Fi,lk,iters=10):
     """Laplacian-smooth bone weights where a vertex blends the hand with a finger root or two finger roots
     (thumb web, ring/pinky web): Kleiner's idle swings the thumb 31 deg and the pinky 45 deg, and CP's sharp
@@ -225,8 +240,10 @@ def metal_of(nm,size):
     if mr is None: return None
     return np.asarray(mr.convert('RGB').resize(size,Image.LANCZOS)).astype(np.float32)[...,2]/255
 EYE_LID_SIGN=1
-LOCK_FINGERS=True
-REFIT_HAND=False
+LOCK_FINGERS=os.environ.get('LOCK_FINGERS','1')=='1'
+HANDFIT=os.environ.get('HANDFIT','0')=='1'
+REFIT_SHELLS=os.environ.get('REFIT_SHELLS','0')=='1'   # multi-finger Gorilla shells: per-vertex segment split instead of one weight set   # fit hand/finger transforms from each hand part's own bind (handfit.py)   # 0: fingers keep their own bones (needed for any finger animation)
+REFIT_HAND=os.environ.get('REFIT_HAND','0')=='1'   # re-split finger vertices along Kleiner's finger segments (only sound once HANDFIT aligns mesh and bones)
 if LOCK_FINGERS:   # fingers ride the hand: keep CP's own finger shape (no per-finger fit onto Kleiner's bones = no twisted thumb)
     for _n in list(RT.D):
         for _sd in ('Left','Right'):
@@ -446,10 +463,13 @@ def main():
                 nrm=np.asarray(nrm)[:,:3].astype(np.float64); nrm/=np.maximum(np.linalg.norm(nrm,axis=1,keepdims=True),1e-9)
                 used=np.unique(F); remap=-np.ones(len(pos),int); remap[used]=np.arange(len(used))
                 if nm in HEADLIKE or nm=='earring': vp,vn_,lk=head_skin(pos[used],nrm[used])   # earring: one rigid move with the head (no per-vertex bone mixing)
+                elif HANDFIT and (nm in ('arms',) or nm.startswith('ga_')):
+                    import handfit; vp,vn_,lk=handfit.retarget(pos[used],nrm[used],np.asarray(p['ji'])[used],np.asarray(p['jw'])[used],p['bones'],p['bonepos'])
                 else: vp,vn_,lk=RT.retarget(pos[used],nrm[used],np.asarray(p['ji'])[used],np.asarray(p['jw'])[used],p['bones'],p['bonepos'])
                 if nm in ('arms',) or nm.startswith('ga_'):
                     if REFIT_HAND: lk=refit_hand(vp,lk)
                     lk=lk if LOCK_FINGERS else smooth_hand_links(remap[F],lk)
+                    if not LOCK_FINGERS and nm in ('ga_cyber','ga_fingers','ga_end','ga_glass'): lk=rigid_small_pieces(remap[F],lk,vp)   # small metal plates move solid; big shells keep their own (smoothed) weights
                     if LOCK_FINGERS: vp,vn_,lk=lock_fingers(vp,vn_,lk)
                 if LOCK_FINGERS and nm not in ('arms',) and not nm.startswith('ga_'):   # any other piece touching a finger (cuffs, sleeves) rides the hand too
                     fids={i for i,n in enumerate(RT.vn) if 'Finger' in n}; hL=RT.vn.index('ValveBiped.Bip01_L_Hand'); hR=RT.vn.index('ValveBiped.Bip01_R_Hand')

@@ -4,7 +4,7 @@
 Everything lands in /mnt/user-data/outputs/token_build/ ; plans/<id>.json says which models + materials each PAC zip gets.
 """
 import sys, os, json, token_kit as K
-OUT='/mnt/user-data/outputs/token_build/'
+OUT=os.environ.get('OUTDIR','/mnt/user-data/outputs/token_build/')
 OUTFITS={
  'outfit1':dict(desc='Misfits tank, black leather bolero, Edgerunner denim pants, vinyl platforms, wallet chain',
    staged='/home/claude/work/token/staged_outfit1.pkl',
