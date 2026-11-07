@@ -27,11 +27,24 @@ def _mats(B,n01=None):
     nx=B['nxy']; gn=np.zeros_like(nx) if n01 is None else np.asarray(n01.convert('RGB').resize(nx.shape[1::-1],Image.BICUBIC)).astype(np.float32)[...,:2]/127.5-1
     xy=np.clip(gn+nx,-0.95,0.95); ni=Image.fromarray(((np.dstack([xy,np.zeros(xy.shape[:2])])+1)*127.5).clip(0,255).astype(np.uint8))
     return dict(base=None,normal=glb.cp_normal(ni),mr=glb.mr_map(Image.fromarray((B['rough']*255).astype(np.uint8)),Image.fromarray((B['metal']*255).astype(np.uint8))),rough=None,metal=None)
+def _clean(B,n01,base,metal,rough,edge=0.10,R=2048):
+    """clean black finish: one flat colour + crisp edge highlights from the normal map (CP's low-res wear mask reads as blotches in Gmod)"""
+    if n01 is not None:
+        g=np.asarray(n01.convert('RGB').resize((R,R),Image.BICUBIC)).astype(np.float32)[...,:2]/127.5-1
+        xy=np.clip(g,-0.95,0.95)
+    else:
+        from scipy.ndimage import gaussian_filter
+        xy=np.dstack([gaussian_filter(B['nxy'][...,c],1.2)*0.5 for c in (0,1)])
+    tilt=np.clip(np.hypot(xy[...,0],xy[...,1])*2.2,0,1)          # bevels / panel edges
+    col=np.ones((R,R,3),np.float32)*np.array(base,np.float32)
+    col=col+edge*tilt[...,None]                                   # edges catch light: silhouette of every screw/vent/panel line
+    return dict(albedo=np.clip(col,0,1),nxy=xy.astype(np.float32),rough=np.full((R,R),rough,np.float32)-0.2*tilt,metal=np.full((R,R),metal,np.float32))
 def parts(warp):
     import garments,xbm
     out=[]; BD=_bake('bd',BD_SETUP); SP=_bake('specs',SP_SETUP)
     n01=xbm.load(garments.segs_of(D+r'citizen_casual\head\h1_033_specs__braindance\textures\h1_033_wa_specs__braindance_n01.xbm'))
-    pickle.dump({'hs_bd':_mats(BD,n01),'hs_specs':_mats(SP)},open(H+'headset_mats.pkl','wb'))
+    BD=_clean(BD,n01,(0.045,0.045,0.05),0.85,0.38); SP=_clean(SP,None,(0.035,0.035,0.04),0.0,0.25,edge=0.06)
+    pickle.dump({'hs_bd':_mats(BD,None),'hs_specs':_mats(SP)},open(H+'headset_mats.pkl','wb'))
     _all=[]
     glass=Image.new('RGBA',(8,8),(8,8,10,255))
     for arch,names,texs in [('basegame_net_head_male_SLOT1_BDance_black.archive',['hs_bd']*4,[_img(BD)]*4),
