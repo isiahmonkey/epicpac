@@ -11,6 +11,10 @@ OUTFITS={
    hide_skin=['torso','pelvis','thighs','calves','feet'],      # base skin regions covered by this outfit
    pieces={'torso_inner':'misfits_tank','torso_outer':'bolero_black','legs':'denim_pants','feet':'vinyl_platform_black',
            'legs_acc':'wallet_chain_silver'}),
+ 'outfit2':dict(desc='Long fur coat, baggy black jeans, Edgerunner boots',
+   staged='/home/claude/work/token/staged_outfit2.pkl',
+   hide_skin=['pelvis','thighs','calves','feet'],               # coat hangs open: keep the chest skin + tattoos
+   pieces={'torso_outer':'long_fur_coat','legs':'baggy_jeans_black','feet':'edgerunner_boots'}),
 }
 oid=sys.argv[1]
 allopts={g:o for m in K.LAYOUT.values() for g,o in m.items()}
