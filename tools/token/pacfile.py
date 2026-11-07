@@ -39,6 +39,10 @@ root=part('group','Token - %s'%oid,dict(OwnerName='self'),[
     part('event','show while bouncer is on',dict(Event='command',Operator='equal',Arguments='bouncer@@0@@0',Invert=True)),
     part('custom_animation','bouncer stance',dict(URL=ANIM%'token_bouncer',AnimationType='stance',Interpolation='linear',StopOnHide=True,Rate=1)),
   ]),
+  part('group','Bouncer back (pac_event bouncer_back 2)',{},[
+    part('event','show while bouncer_back is on',dict(Event='command',Operator='equal',Arguments='bouncer_back@@0@@0',Invert=True)),
+    part('custom_animation','bouncer back stance',dict(URL=ANIM%'token_bouncer_back',AnimationType='stance',Interpolation='linear',StopOnHide=True,Rate=1)),
+  ]),
 ])
 out=B+'pac3_outfits/token_%s.txt'%oid
 open(out,'w',newline='\n').write('[1] = %s,\n'%lua(root,2))
