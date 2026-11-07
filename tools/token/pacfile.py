@@ -23,6 +23,11 @@ def lua(v,t=1):
     return s+'\t'*(t-1)+'}'
 part=lambda cls,name,extra,children=[]: {'children':children,'self':dict(ClassName=cls,Name=name,UniqueID=uid(name),**extra)}
 hide=';'.join('skin_%s=1'%r for r in plan['hide_skin'])+';' if plan['hide_skin'] else ''
+def smoke_group():
+    sys.path[:0]=['/home/claude/work/smoke','/home/claude/work/token']
+    import smoke_pac,sprops,stimes
+    tm=stimes.timing('/home/claude/epicpac/anim/token_smoke.json'); tm['anchors']=json.load(open('/home/claude/work/smoke/anchors.json'))
+    return smoke_pac.build(part,Vec,Ang,model,ANIM,tm)
 root=part('group','Token - %s'%oid,dict(OwnerName='self'),[
   part('entity2','hide player',dict(NoDraw=True,DrawShadow=True)),
   part('model2','token_base',dict(Model=model('token_base'),BoneMerge=True,ModelModifiers=hide)),
@@ -39,6 +44,7 @@ root=part('group','Token - %s'%oid,dict(OwnerName='self'),[
     part('event','show while bouncer is on',dict(Event='command',Operator='equal',Arguments='bouncer@@0@@0',Invert=True)),
     part('custom_animation','bouncer stance',dict(URL=ANIM%'token_bouncer',AnimationType='stance',Interpolation='linear',StopOnHide=True,Rate=1)),
   ]),
+  smoke_group(),
   part('group','Bouncer back (pac_event bouncer_back 2)',{},[
     part('event','show while bouncer_back is on',dict(Event='command',Operator='equal',Arguments='bouncer_back@@0@@0',Invert=True)),
     part('custom_animation','bouncer back stance',dict(URL=ANIM%'token_bouncer_back',AnimationType='stance',Interpolation='linear',StopOnHide=True,Rate=1)),
