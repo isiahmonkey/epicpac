@@ -200,6 +200,7 @@ def untattoo_hands(im):
     a[...,:3]=a[...,:3]*(1-m)+c[...,:3]*m; return Image.fromarray(a.astype(np.uint8),'RGBA')
 OCC_PARAM={'arms':(0.14,0.0,True)}
 SINK={'arms':0.05}   # name -> (reach in, edge margin in, two-sided)
+CUT_ABOVE={'den_boots':(6.5,'jeans')}   # part -> (height in inches, only when this covering garment is in the same model)
 OCCLUDE={'arms':['ga_fingers'],'mis_tank':['bolero_ml','bolerocuff_ml'],'mis_print':['bolero_ml'],'mis_stitch':['bolero_ml','bolerocuff_ml']}   # inner layer -> outer layers that cover it
 OUTER={}   # outer part name -> (points, normals) in bind space, filled per model
 def covered(vp,vn,outer_names,reach=1.4,margin=2.4,both=False):
@@ -464,6 +465,8 @@ def main():
                     r_,m_,b_=OCC_PARAM.get(nm,(1.4,2.4,False)); hid=covered(vp,vn_,OCCLUDE[nm],r_,m_,b_)
                     if nm in SINK: vp=vp-vn_*SINK[nm]*hid[:,None]; hid[:]=False   # tuck under the shell instead of cutting (cutting left holes at the finger roots)
                     keep=~hid[Fi].all(1); print('   %s: %d/%d faces hidden under %s'%(nm,(~keep).sum(),len(Fi),OCCLUDE[nm])); Fi=Fi[keep]
+                if nm in CUT_ABOVE and CUT_ABOVE[nm][1] in OUTER:   # boot shaft hidden inside long pants: delete it so it can't poke through the jeans
+                    keep=~(vp[Fi][:,:,2]>CUT_ABOVE[nm][0]).all(1); print('   %s: %d/%d faces cut above z=%.1f'%(nm,(~keep).sum(),len(Fi),CUT_ABOVE[nm][0])); Fi=Fi[keep]
                 a,b,c=vp[Fi[:,0]],vp[Fi[:,1]],vp[Fi[:,2]]
                 bad=(np.cross(b-a,c-a)*vn_[Fi].sum(1)).sum(1)<0; Fi[bad]=Fi[bad][:,[0,2,1]]; flip=False   # each triangle faces the way its normals point (Source culls back faces)
                 emit_mat(nm,p)
@@ -486,7 +489,7 @@ def main():
         allt=[]; mats=set(); groupsout={}
         OUTER.clear()
         allparts={x for opts in groups.values() for ps in opts.values() for x in ps}
-        for o in {x for v in OCCLUDE.values() for x in v}:
+        for o in {x for v in OCCLUDE.values() for x in v}|{c for _,c in CUT_ABOVE.values()}:
             if o in allparts:
                 pts=[]; nrs=[]
                 for p in byname.get(o,[]):
