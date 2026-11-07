@@ -16,7 +16,8 @@ def build_model():
     T=[]
     for s in 'lr':
         for p in BH.hand(s):
-            if p['chunk']!=2: continue                     # sub-mesh 2 = the hand (0,1,3 are arm pieces)
+            # the whole Cyberpunk base arm (hand + forearm + upper arm), one continuous mesh: no wrist seam. Replaces the
+            # Gorilla arm skin in the test (its hidden hand stub was the swollen blob seen in game).
             T+=smd.part_tris(p['pos'],p['nrm'],p['uv'],p['idx'].ravel(),p['lk'],'token_arms')
     M='token_testhands'
     smd.write(OUT+'modelsrc/%s_bind.smd'%M,K.VN,K.VP,K.NLX,[]); smd.write(OUT+'modelsrc/%s_body.smd'%M,K.VN,K.VP,K.NLX,T)
