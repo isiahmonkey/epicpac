@@ -9,6 +9,7 @@ for l in open('/mnt/user-data/uploads/V_Gmod/token_pose_idle.txt'):
 for i,n in enumerate(RT.vn):
     p=RT.vp[i]
     if p>=0 and n in W and RT.vn[p] in W: pacgen.BASE[i]=W[RT.vn[p]].T@W[n]
+gseq.install_fretting()     # fretting fingers placed on the fingerboard (the earlier build skipped this)
 BLEND=0.6
 J,times,keep=pacgen.build(gseq.world_at,gseq.LOOP,0.0,fps=15,blend_in=BLEND,tol=0.6)
 J2,info=retime.retime(J)

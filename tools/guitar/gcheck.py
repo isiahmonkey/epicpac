@@ -16,6 +16,11 @@ if os.environ.get('BASEDIR'):
     for f in P.FILES:
         f2=os.path.join(os.environ['BASEDIR'],os.path.basename(f)) if os.path.basename(f).startswith('token_base_') else f
         for m,v in P.load(f2).items(): P.MESH[m]=[np.concatenate([a,b]) for a,b in zip(P.MESH[m],v)] if m in P.MESH else v
+if os.environ.get('HANDS','d')=='d':
+    # hand D (Cyberpunk's base hand, approved) with the Judy tuner gloves, in place of the Gorilla arm skin
+    for k in [k for k in P.MESH if k=='token_arms' or k.startswith('token_ga_')]: P.MESH.pop(k)
+    for f in ('token_handsd_body.smd','token_gloves_body.smd'):
+        for m,v in P.load(os.path.join(os.environ.get('HANDDIR',K+'modelsrc'),f)).items(): P.MESH[m]=v
 if os.environ.get('FRET','1')=='1': gseq.install_fretting()
 NODES={v:k for k,v in P.nodes.items()}
 # ------------------------------------------------------------ guitar surface (item space, m) sampled every ~2 mm
@@ -78,7 +83,19 @@ def _finger_id(s):
     for f in range(5):
         ix=np.where(fid==f)[0]; far=ix[np.argsort(-np.linalg.norm(Pp[ix]-hb,axis=1))[:12]]; out[f]=far
     return out
-TIPV={s:_finger_id(s) for s in 'LR'}
+def _skin_tips(s):
+    """hand D: the end 15% (along the bone) of the skin each Finger_2 bone carries; the glove's rods are not fingertips"""
+    if os.environ.get('HANDS','d')!='d': return _finger_id(s)
+    Pp,N,B,W,dom=HV[s]; out={}
+    skin=np.zeros(len(Pp),bool); k=0
+    for m,(P_,N_,UV_,B_,W_) in P.MESH.items():
+        d_=B_[np.arange(len(B_)),W_.argmax(1)]; ids={NODES[VB+'%s_%s'%(s,b)] for b in ['Hand']+['Finger%d%s'%(f,kk) for f in range(5) for kk in ('','1','2')] if VB+'%s_%s'%(s,b) in NODES}
+        n_=int(np.isin(d_,list(ids)).sum()); skin[k:k+n_]=(m=='token_arms'); k+=n_
+    for f in range(5):
+        n=VB+'%s_Finger%d2'%(s,f); j=RT.vn.index(n); sel=np.where(skin&(dom==NODES[n]))[0]
+        x=((Pp[sel]-RT.NW[j][:3,3])@RT.NW[j][:3,:3])[:,0]; out[f]=sel[x>np.percentile(x,85)]
+    return out
+TIPV={s:_skin_tips(s) for s in 'LR'}
 def cp_tips(W,s):
     """Cyberpunk's own fingertips in its guitar (WeaponLeft) frame = guitar item space, m"""
     S={'L':'Left','R':'Right'}[s]; I={n:i for i,n in enumerate(cpanim.NAMES)}; G=np.linalg.inv(W[I['WeaponLeft']]); out={}

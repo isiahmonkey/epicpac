@@ -22,7 +22,7 @@ def textures():
     cache='/home/claude/work/guitar/bake_black.pkl'
     if os.path.exists(cache): o=pickle.load(open(cache,'rb'))
     else:
-        ml.COLOR_OVERRIDE.clear(); ml.COLOR_OVERRIDE.update({k:(0.010,0.010,0.011) for k in (0,4,9,14)})   # 0 anodised base coat, 4 blue trim, 9 foil graphic, 14 red/tan plastic panels
+        ml.COLOR_OVERRIDE.clear(); ml.COLOR_OVERRIDE.update({k:(0.010,0.010,0.011) for k in (0,4,9,11,14)})   # 0 anodised base coat, 4 blue trim, 9 foil graphic, 11 red body edge paint, 14 red/tan plastic panels
         o=ml.bake(D+'ml_electric_guitar.mlsetup',D+'ml_electric_guitar_masksset.mlmask',R=2048); pickle.dump(o,open(cache,'wb'))
     alb=Image.fromarray((np.clip(o['albedo'],0,1)*255).astype(np.uint8)).resize((1024,1024),Image.LANCZOS)
     n=np.clip(o['nxy'],-1,1); z=np.sqrt(np.clip(1-(n**2).sum(-1),0,1))

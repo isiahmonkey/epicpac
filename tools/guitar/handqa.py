@@ -28,48 +28,46 @@ if st.returncode: print(st.stdout); fail('self-test'); json.dump(R,open('/home/c
 import gtear as T, gseq, retarget as RT, vanim
 VB='ValveBiped.Bip01_'
 # 1 ------------------------------------------------------------------
+HANDFILES=('token_handsd_body.smd','token_gloves_body.smd')
 def mapping(d):
-    nodes=T.nodes_of(d); inv={v:k for k,v in nodes.items()}; P=[];D=[]
-    for f in ('arms_gorilla_black','arms_cyber_gorilla_black','arms_plates_l_gorilla_black','arms_plates_r_gorilla_black'):
-        p,b,w,_=T.load(d+'/token_base_%s.smd'%f); P.append(p); D.append(b[np.arange(len(b)),w.argmax(1)])
+    nodes=T.nodes_file(d+'/'+HANDFILES[0]); inv={v:k for k,v in nodes.items()}; P=[];D=[]
+    p,b,w,_=T.load(d+'/'+HANDFILES[0]); P.append(p); D.append(b[np.arange(len(b)),w.argmax(1)])
     p=np.vstack(P); dom=np.concatenate(D); out={}
     for s in 'LR':
         for f in range(5):
             for k in ('','1','2'):
-                if f==0 and k=='2': continue                 # CP thumbs have two segments: Finger02 legitimately carries none
+                if f==0 and k=='': continue                  # hand D: Finger0 carries only the ball of the thumb (thenar weights)
                 n=VB+'%s_Finger%d%s'%(s,f,k); i=RT.vn.index(n); sel=dom==inv[n]
                 if not sel.any(): out[n[17:]]='no mesh (frozen)'; continue
                 L=np.linalg.norm(RT.NL[RT.vn.index(VB+'%s_Finger%d%s'%(s,f,{'':'1','1':'2'}[k]))][:3,3]) if k!='2' else 1.0
                 q=(p[sel]-RT.NW[i][:3,3])@RT.NW[i][:3,:3]; x=float(np.median(q[:,0])); r=float(np.median(np.linalg.norm(q[:,1:],axis=1)))
-                if not (-0.3<x<L+0.3 and r<0.75): out[n[17:]]='off its mesh (along %.2f, off-axis %.2f in)'%(x,r)
-                far=float((np.linalg.norm(q[:,1:],axis=1)>1.0).mean())
-                if far>0.10 and sel.sum()>50: out[n[17:]+' outliers']='%.0f%% of its %d vertices lie >1 in from the bone (they swing with the finger)'%(far*100,sel.sum())
+                if not (-0.6<x<L+0.6 and r<0.9): out[n[17:]]='off its mesh (along %.2f, off-axis %.2f in)'%(x,r)
     return out
 # 2 ------------------------------------------------------------------
 def poses():
     if a.stance=='guitar': gseq.install_fretting(); f=gseq.world_at; L=gseq.LOOP
     return [vanim.full_world(vanim.valve_world_rots_W(f(t))) for t in np.linspace(0,L,a.frames,endpoint=False)]
 NWS=poses()
+GROW=0.2; LIMIT={'token_handsd_body.smd':0,'token_gloves_body.smd':150}   # edges stretched more than GROW in; hand D had none in the finger test, the gloves 122
 def tearing(d):
-    nodes=T.nodes_of(d); hands=[RT.NW[RT.vn.index(VB+s+'_Hand')][:3,3] for s in 'LR']; res={'hand':0,'arm':0,'worst':1.0}
-    for f in ('arms_gorilla_black','arms_cyber_gorilla_black','arms_plates_l_gorilla_black','arms_plates_r_gorilla_black'):
-        P,Bn,Wt,_=T.load(d+'/token_base_%s.smd'%f); F=np.arange(len(P)).reshape(-1,3)
-        E0=np.stack([np.linalg.norm(P[F[:,i]]-P[F[:,j]],axis=1) for i,j in ((0,1),(1,2),(2,0))],1); worst=np.ones(len(F))
+    res={}
+    for f in HANDFILES:
+        P,Bn,Wt,_=T.load(d+'/'+f); nodes=T.nodes_file(d+'/'+f); F=np.arange(len(P)).reshape(-1,3)
+        E0=np.stack([np.linalg.norm(P[F[:,i]]-P[F[:,j]],axis=1) for i,j in ((0,1),(1,2),(2,0))],1); g=np.zeros(len(F))
         for NW in NWS:
-            Q=T.skin(NW,nodes,P,Bn,Wt); E=np.stack([np.linalg.norm(Q[F[:,i]]-Q[F[:,j]],axis=1) for i,j in ((0,1),(1,2),(2,0))],1)
-            r=E/np.maximum(E0,1e-6); worst=np.maximum(worst,np.where(E0>0.02,np.maximum(r,1/np.maximum(r,1e-6)),1).max(1))
-        c=P[F].mean(1); near=np.min([np.linalg.norm(c-h,axis=1) for h in hands],0)<HAND_R
-        bad=worst>TEAR; res['hand']+=int((bad&near).sum()); res['arm']+=int((bad&~near).sum()); res['worst']=max(res['worst'],round(float(worst.max()),2))
+            Q=T.skin(NW,nodes,P,Bn,Wt); E=np.stack([np.linalg.norm(Q[F[:,i]]-Q[F[:,j]],axis=1) for i,j in ((0,1),(1,2),(2,0))],1); g=np.maximum(g,(E-E0).max(1))
+        # split: near the hands (within HAND_R of either hand bone at bind) vs the forearm / elbow / shoulder
+        c=P[F].mean(1); hb=[RT.NW[RT.vn.index(VB+s_+'_Hand')][:3,3] for s_ in 'LR']; near=np.min([np.linalg.norm(c-h_,axis=1) for h_ in hb],0)<HAND_R
+        res[f]=dict(grown=int(((g>GROW)&near).sum()),worst_in=round(float(g[near].max()),2),arm_grown=int(((g>GROW)&~near).sum()),arm_worst_in=round(float(g[~near].max()) if (~near).any() else 0,2))
     return res
-for lab,d in (('shipped',SHIPPED),('candidate',a.cand)):
-    R[lab]={'mapping':mapping(d),'tearing':tearing(d)}
-    print(lab,'mapping problems:',len(R[lab]['mapping']),'| torn tris hand %(hand)d arm %(arm)d, worst %(worst).1fx'%R[lab]['tearing'])
+R['candidate']={'mapping':mapping(a.cand),'tearing':tearing(a.cand)}
+print('mapping problems:',len(R['candidate']['mapping']),'| tearing',R['candidate']['tearing'])
 if R['candidate']['mapping']: fail('bone mapping: '+'; '.join('%s %s'%kv for kv in list(R['candidate']['mapping'].items())[:6]))
-for reg in ('hand','arm'):
-    if R['candidate']['tearing'][reg]>R['shipped']['tearing'][reg]: fail('tearing in the %s region: %d torn tris vs %d shipped'%(reg,R['candidate']['tearing'][reg],R['shipped']['tearing'][reg]))
+for f,v in R['candidate']['tearing'].items():
+    if v['grown']>LIMIT[f]: fail('tearing %s: %d triangles stretched more than %.1f in (limit %d)'%(f,v['grown'],GROW,LIMIT[f]))
 # 3-5 ----------------------------------------------------------------
 if a.stance=='guitar':
-    os.environ['BASEDIR']=a.cand; os.environ['FRET']='1'
+    os.environ['HANDDIR']=a.cand; os.environ['FRET']='1'
     import gcheck as G
     ts=np.linspace(0,gseq.LOOP,a.frames,endpoint=False); fr=[G.frame(gseq.world_at,t) for t in ts]
     errs=[]

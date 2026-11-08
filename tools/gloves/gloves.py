@@ -21,6 +21,7 @@ def hand_D(side):
 def _flat(parts):
     P=np.vstack([p['pos'] for p in parts]); N=np.vstack([p['nrm'] for p in parts]); L=[l for p in parts for l in p['lk']]; return P,N,L
 CHAIN=True        # copy skin weights within the same finger only
+WRIST_OWN=False   # wrist unit keeps the glove's own weights (see fitted)
 def _chain(b):
     n=RT.vn[b]
     return int(n[n.index('Finger')+6]) if 'Finger' in n else -1
@@ -38,6 +39,12 @@ def fitted(side,path,chunks=None):
     from scipy.sparse import coo_matrix; from scipy.sparse.csgraph import connected_components
     for p in parts:
         _,nn=tree.query(p['pos']); lk=list(p['lk']) if OWN else [HL[k] for k in nn]
+        if WRIST_OWN and not OWN:
+            # wrist unit (band, screen, cuff): the glove's own artist weights, which keep it a hard ring over the wrist;
+            # copied skin weights bent it with the wrist (stretched up to 0.55 in in the guitar loop)
+            own_dom=np.array([_chain(max(l,key=lambda t:t[1])[0]) for l in p['lk']])
+            WR=own_dom==-1
+        else: WR=None
         if CHAIN and not OWN:
             # copy skin weights only from the same finger the glove's own weights put this vertex on: a glove triangle
             # copied from two different fingers tore (up to 105x stretch, gloves.stretch)
@@ -53,6 +60,8 @@ def fitted(side,path,chunks=None):
             lkw=BH.smooth_links(w[p['idx']],lkw,SMOOTH); lk=[lkw[w[i]] for i in range(len(lk))]
         # hardware pieces (plates, bars, buttons) move solid with one weight set, the way a rigid part would;
         # big pieces (the glove body hugging the skin) keep the skin's own weights
+        if WR is not None and WR.any():
+            for i in np.where(WR)[0]: lk[i]=p['lk'][i]
         P=p['pos']; F=p['idx']; key=np.round(P/1e-3).astype(np.int64); _,w=np.unique(key,axis=0,return_inverse=True); w=w.ravel(); Fw=w[F]; n=w.max()+1
         g=coo_matrix((np.ones(Fw.size),(np.r_[Fw[:,0],Fw[:,1],Fw[:,2]],np.r_[Fw[:,1],Fw[:,2],Fw[:,0]])),shape=(n,n))
         _,lab=connected_components(g,directed=False); vl=lab[w]

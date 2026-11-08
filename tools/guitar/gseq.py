@@ -1,7 +1,7 @@
 """Token's guitar stance (outfit 2): Cyberpunk's stand__2h_guitar__pick__01 songs 01 -> 02 -> 03, which chain seamlessly
 (72 s loop). The guitar hangs rigid on the chest (CP WeaponLeft averaged in the Spine3 frame); both arms are re-aimed on
 Token's Kleiner skeleton so each hand keeps CP's position on the guitar (fret hand on the neck, pick hand over the strings)."""
-import sys,numpy as np
+import sys,os as _os,numpy as np
 sys.path[:0]=['/home/claude/work/guitar','/home/claude/work/smoke','/home/claude/work/anim','/home/claude/work/drink','/home/claude/tools/scripts','/home/claude/work/build']
 import cpanim,xf,vanim, retarget as RT
 from seq_util import blend,ss
@@ -55,9 +55,15 @@ def hand_in_chest_valve(W,side):
     NW=valve_NW(W); i=VH[side]; X=hand_pts(side)[0]
     p=(NW[i]@np.linalg.inv(RT.NW[i])@X)[:3,3]; Ch=NW[VCH]@np.linalg.inv(RT.NW[VCH])
     return (np.linalg.inv(Ch)@np.r_[p,1])[:3],Ch
+HAND_SCALE=float(_os.environ.get('HAND_SCALE','1.08'))   # swept: 1.0 clipped 12 mm, 1.236 left the fingertips 15 mm off their frets   # hand D vs V's hand (thumbmap.Mh scale)
 def desired_in_chest_valve(W,side):
     """where CP has that hand relative to the guitar, carried onto the guitar as it hangs on Token"""
     Wg=W[I['Spine3']]@G_REL; rel=np.linalg.inv(W[I['WeaponLeft']])@W[I[side+'Hand']]
+    if side=='Left' and HAND_SCALE!=1.0:
+        # Token's hand is HAND_SCALE x V's: hold the neck the way V does, scaled about the neck's centre line, so the bigger
+        # palm and thumb sit around the neck instead of through it (item space: z along the neck, x off the fingerboard)
+        q=cp_to_item(rel[:3,3]); c=np.array([BOARD-0.0105,0.0,q[2]]); q=c+(q-c)*np.array([HAND_SCALE,HAND_SCALE,1.0])
+        rel=rel.copy(); rel[:3,3]=(XT@np.r_[q,1])[:3]
     # the hand relative to the *moving* CP guitar, re-attached to the rigid one
     return (G_HAND@RT.tov(rel))[:3,3]
 # ---------------------------------------------------------------- two-bone IK in CP space
@@ -96,8 +102,10 @@ def _heightmap(cell=0.005):
     for (j,k),x in zip(map(tuple,ij),P[:,0]): H[(j,k)]=max(H.get((j,k),-1),x)
     return H,cell
 FINGER_R=0.011                                  # Gorilla glove finger half-thickness (m)
+import os as _os; CLEAR=_os.environ.get('CLEAR','1')=='1'   # mesh-based clearance (gclear)
 def right_lift(W):
     """how far (m, along the guitar's string normal) the strumming hand must rise so its fingers clear the body"""
+    if CLEAR: return gclear.hand_need(vanim.full_world(_ORIG_ROTS(W)),'R')    # the real hand D + glove mesh, not bone points
     global _HM
     if _HM is None: _HM=_heightmap()
     H,cell=_HM; R=_ORIG_ROTS(W); NW=vanim.full_world(R); Gp=NW[VCH]@np.linalg.inv(RT.NW[VCH])@G_BIND; Gi=np.linalg.inv(Gp)
@@ -151,12 +159,28 @@ def world_at(t): return fit(cp_local(t))
 # tip lands where Cyberpunk's does along the neck and across the strings: on the fingerboard when Cyberpunk presses
 # (tip within PRESS of the board), lifted by Cyberpunk's own height when it doesn't.
 OFFSET_X=0.0          # superseded by TILT (a straight 25 mm lift pushed the body into the strumming forearm)
-BOARD=0.01122+OFFSET_X; NECK_Z=(0.53,0.80); NECK_YR=(-0.0239,0.0180); PAD=0.0075; PRESS=0.012
+BOARD=0.01122+OFFSET_X; NECK_Z=(0.53,0.80); NECK_YR=(-0.0239,0.0180); PAD=float(_os.environ.get('PAD','0.009'));   # fingertip centre above the board (hand D's pad is ~6 mm below the centre)
+PRESS=0.012
 _ORIG_ROTS=vanim.valve_world_rots_W
+import os as _os, thumbmap, gclear
+if _os.environ.get('THUMBMAP','1')=='1': _ORIG_ROTS=thumbmap.wrap(_ORIG_ROTS)   # hand D's thumb: CP thumb motion through the hand fit
 VB='ValveBiped.Bip01_'; VIX={n:i for i,n in enumerate(RT.vn)}
 FING={f:[VB+'L_Finger%d%s'%(f,k) for k in ('','1','2')] for f in range(1,5)}
 CPF={1:'Index',2:'Middle',3:'Ring',4:'Pinky'}
-TIPOFF={f:np.array([0.95*np.linalg.norm(RT.NL[VIX[FING[f][2]]][:3,3]),0,0]) for f in FING}
+def _mesh_tips(side='L'):
+    """fingertip centre of hand D in each Finger_2 bone frame (inches): the end 15% of the skin that bone carries.
+    Hand D's fingers hang off the palm side of the Valve bones (centre ~0.4 in below the bone), so a point on the bone
+    axis (the old TIPOFF) put the real fingertip up to 12 mm inside the fingerboard."""
+    import gtear as T_
+    f_=os.path.join(os.environ.get('HANDDIR','/mnt/user-data/outputs/token_build/modelsrc'),'token_handsd_body.smd')
+    if not os.path.exists(f_): return None
+    P,B,W,_=T_.load(f_); nodes=T_.nodes_file(f_); inv={v:k for k,v in nodes.items()}; dom=B[np.arange(len(B)),W.argmax(1)]; out={}
+    for f in FING:
+        n=VB+'%s_Finger%d2'%(side,f); sel=dom==inv[n]; j=VIX[n]
+        q=(np.linalg.inv(RT.NW[j])@np.c_[P[sel],np.ones(sel.sum())].T).T[:,:3]; out[f]=q[q[:,0]>np.percentile(q[:,0],85)].mean(0)
+    return out
+import os
+TIPOFF=_mesh_tips() or {f:np.array([0.95*np.linalg.norm(RT.NL[VIX[FING[f][2]]][:3,3]),0,0]) for f in FING}
 def cp_tip_item(W,nm,side='Left'):
     a,b=W[I[side+'Hand%s2'%nm]][:3,3],W[I[side+'Hand%s3'%nm]][:3,3]; tip=b+(b-a)*0.7
     return cp_to_item((np.linalg.inv(W[I['WeaponLeft']])@np.r_[tip,1])[:3])
@@ -202,9 +226,13 @@ def fret_fix(W,R,iters=10):
                 lo,hi=LIM[j]; cu=_curl(par,new[j])
                 if lo<=cu<=hi or (j==0): Rs=new
             if np.linalg.norm(fk(Rs)[3]-T)<0.02: break
+        if CLEAR: Rs=gclear.settle_finger(ch,Rs,p0,off,T,Gp,hand,LIM)     # keep the finger out of the neck (hand D is 24% larger than V's)
         for c,r in zip(ch,Rs): R[c]=r
     return R
-def rots_fretted(W): return fret_fix(W,_ORIG_ROTS(W))
+def rots_fretted(W):
+    R=fret_fix(W,_ORIG_ROTS(W))
+    if CLEAR: R=gclear.settle_thumb(R,vanim.full_world,'L')     # the thumb behind the neck
+    return R
 def install_fretting():
     vanim.valve_world_rots_W=rots_fretted
     vanim.valve_world_rots=lambda clip,t: rots_fretted(clip.world(t))

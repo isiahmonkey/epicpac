@@ -14,6 +14,10 @@ def load(f):
             Bn.append([int(t[10+2*q]) for q in range(n)][:4]+[0]*(4-min(n,4))); Wt.append([float(t[11+2*q]) for q in range(n)][:4]+[0]*(4-min(n,4)))
         M.append(T[i].strip())
     return np.array(P),np.array(Bn),np.array(Wt),M
+def nodes_file(f):
+    L=open(f).read().split('\n'); k=L.index('nodes')+1; out={}
+    while L[k]!='end': t=L[k].split('"'); out[int(t[0])]=t[1]; k+=1
+    return out
 def nodes_of(d):
     L=open(d+'/token_base_bind.smd').read().split('\n'); k=L.index('nodes')+1; out={}
     while L[k]!='end': t=L[k].split('"'); out[int(t[0])]=t[1]; k+=1
